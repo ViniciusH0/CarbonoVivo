@@ -230,8 +230,8 @@ MonoBehaviour:
   zoomSpeed: 10
   mouseScrollSpeed: 100
   zoomSmoothness: 10
-  minOrthographicSize: 62
-  maxOrthographicSize: 220
+  minOrthographicSize: 32
+  maxOrthographicSize: 160
 --- !u!114 &549915895
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -861,11 +861,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5993c909e3680764787398dde52d823c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TreeSpawner
-  treePrefab: {fileID: 1365501357823882907, guid: 16f4ebf667d151740b91c406db59881f, type: 3}
+  treePrefabs:
+  - {fileID: 3846715827405774814, guid: 19e04642982122042b1229b9502e7ca8, type: 3}
+  - {fileID: 9171680853970097044, guid: 8940780698a70a54ab3ccea4f97e266a, type: 3}
+  - {fileID: 585936837420483149, guid: 9333578db1ae15a47aceccc9df4e175a, type: 3}
+  - {fileID: 4839211348052308667, guid: ffbc47ad9c28ab941a214d6daee7c954, type: 3}
+  - {fileID: 4447388853669991994, guid: 409569b370254b04da98f30698a710fa, type: 3}
+  - {fileID: 2576535529419721896, guid: d4b5ce2bd9a1d4f469070290e07bc0fe, type: 3}
+  - {fileID: 7346499119500913347, guid: 17ac135f80bf89746899a65fee764565, type: 3}
+  - {fileID: 1746934013344574830, guid: 5b533ea89955bc64f9ca3508aa1f9d7b, type: 3}
+  - {fileID: 6271473208865926248, guid: b1959ccdad73e8a418ad4bdfca967c5b, type: 3}
+  - {fileID: 3389087485586435848, guid: 80851a5300560bc469b9dfa52e520a92, type: 3}
+  - {fileID: 1380220359581725227, guid: 68adc1b182a6323488d8884b78c73cca, type: 3}
+  - {fileID: 1753557366201465046, guid: 61be68291c21d4e41b91686be00dae6f, type: 3}
+  - {fileID: 6152951797257995570, guid: 7615d6e58a5e5024eb0d681614f19af4, type: 3}
+  - {fileID: 7558385839112487980, guid: ab84c1cfbef1f9747ac679da99737353, type: 3}
+  - {fileID: 4636996241537893071, guid: 129bd2dabe035ec4cbf5180d4f4d37f0, type: 3}
+  - {fileID: 5852110049934031574, guid: 5b2765dec83947d42a28b81f58a10593, type: 3}
+  - {fileID: 7431830986768125118, guid: 7798a737cbb780a4ca69e210df1b3e70, type: 3}
+  - {fileID: 6665685520291159211, guid: f1a5a0c3e840b0344bfb329ca44a3808, type: 3}
+  - {fileID: 1349165791464754847, guid: 41b54c1a67a493c47ba8f500c5c294d6, type: 3}
+  - {fileID: 7841246726653260963, guid: 18a99196ad227fd46a033c25d98bf263, type: 3}
+  - {fileID: 879598323705583676, guid: 7ad255bb3b8783a42b968a340e7e9a4e, type: 3}
   plane: {fileID: 927474801}
-  obstacleCube: {fileID: 903294163}
-  multiplier: 1
-  spawnInterval: 0.2
+  spawnBlockers: []
+  multiplier: 10
+  spawnInterval: 0.05
+  minScaleMultiplier: 1.4
+  maxScaleMultiplier: 2
+  rotationOffset: {x: -90, y: 0, z: 0}
 --- !u!4 &1967078931
 Transform:
   m_ObjectHideFlags: 0

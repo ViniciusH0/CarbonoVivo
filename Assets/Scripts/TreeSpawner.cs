@@ -3,18 +3,28 @@ using UnityEngine;
 
 public class TreeSpawner : MonoBehaviour
 {
-    public GameObject treePrefab;
+    public GameObject[] treePrefabs; 
     public MeshRenderer plane;
-    public Collider obstacleCube; 
+    public Collider[] spawnBlockers;
     
     [Min(0)] public float multiplier = 1f;
     [Min(0.01f)] public float spawnInterval = 0.2f;
+
+    [Header("Scale Settings")]
+    public float minScaleMultiplier = 0.8f;
+    public float maxScaleMultiplier = 1.5f;
+
+    [Header("Rotation Settings")]
+    [Tooltip("Ex: Se a árvore nasce deitada em 90 no X, coloque -90 aqui para corrigir.")]
+    public Vector3 rotationOffset; // NOVO: Offset de rotação
 
     private List<GameObject> spawnedTrees = new List<GameObject>();
     private float timer = 0f;
 
     void Update()
     {
+        if (treePrefabs == null || treePrefabs.Length == 0) return;
+
         int targetCount = Mathf.RoundToInt(multiplier * 10);
 
         if (spawnedTrees.Count != targetCount)
@@ -48,17 +58,27 @@ public class TreeSpawner : MonoBehaviour
             spawnPos = GetRandomPositionOnPlane();
             attempts++;
         } 
-        while (IsInsideObstacle(spawnPos) && attempts < maxAttempts);
+        while (IsInsideAnyBlocker(spawnPos) && attempts < maxAttempts);
 
         if (attempts < maxAttempts)
         {
-            GameObject newTree = Instantiate(treePrefab, spawnPos, Quaternion.identity, transform);
+            GameObject prefabToSpawn = treePrefabs[Random.Range(0, treePrefabs.Length)];
+            
+            // MODIFICADO: Agora usamos o rotationOffset no Instantiate
+            Quaternion finalRotation = Quaternion.Euler(rotationOffset);
+            GameObject newTree = Instantiate(prefabToSpawn, spawnPos, finalRotation, transform);
+            
+            float randomScale = Random.Range(minScaleMultiplier, maxScaleMultiplier);
+            newTree.transform.localScale = Vector3.one * randomScale;
+            
             spawnedTrees.Add(newTree);
         }
     }
 
     private void RemoveTree()
     {
+        if (spawnedTrees.Count == 0) return;
+
         int lastIndex = spawnedTrees.Count - 1;
         Destroy(spawnedTrees[lastIndex]);
         spawnedTrees.RemoveAt(lastIndex);
@@ -75,11 +95,24 @@ public class TreeSpawner : MonoBehaviour
         return new Vector3(randomX, plane.transform.position.y, randomZ); 
     }
 
-    private bool IsInsideObstacle(Vector3 pos)
+    private bool IsInsideAnyBlocker(Vector3 pos) 
     {
-        if (obstacleCube == null) return false;
+        if (spawnBlockers == null || spawnBlockers.Length == 0) return false;
+
+        foreach (Collider blocker in spawnBlockers)
+        {
+            if (blocker == null) continue;
+            
+            // Verificação simples baseada nos limites (AABB)
+            Vector3 checkPos = pos;
+            checkPos.y = blocker.bounds.center.y;
+            
+            if (blocker.bounds.Contains(checkPos))
+            {
+                return true; 
+            }
+        }
         
-        pos.y = obstacleCube.bounds.center.y;
-        return obstacleCube.bounds.Contains(pos);
+        return false;
     }
 }
