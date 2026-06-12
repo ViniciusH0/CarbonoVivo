@@ -1,11 +1,12 @@
 using UnityEngine;
 using TMPro; 
 
-public class CarbonManager : MonoBehaviour
+public class CarbonManager1 : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private TreeSpawner treeSpawner;
-    [SerializeField] private TextMeshProUGUI carbonText; // Referência UI
+    [SerializeField] private TextMeshProUGUI carbonText;
+    [SerializeField] private WinScreen winScreen; 
 
     [Header("Carbon Settings")]
     [SerializeField] private float maxCarbon = 1000f;
@@ -18,17 +19,22 @@ public class CarbonManager : MonoBehaviour
 
     void Update()
     {
-        if (treeSpawner == null) return;
+        if (treeSpawner == null || (winScreen != null && winScreen.IsGameWon)) return;
 
         int treeCount = treeSpawner.GetTreeCount();
 
         currentCarbon += treeCount * generationPower * Time.deltaTime;
         currentCarbon = Mathf.Clamp(currentCarbon, 0f, maxCarbon);
 
-        // Atualiza a UI
         if (carbonText != null)
         {
             carbonText.text = Mathf.RoundToInt(currentCarbon).ToString();
+        }
+
+        // Checa condição de vitória
+        if (currentCarbon >= maxCarbon && winScreen != null)
+        {
+            winScreen.Show();
         }
     }
 }

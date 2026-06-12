@@ -8,6 +8,7 @@ public class QuestionManager : MonoBehaviour
 {
     [Header("References")]
     public IndicatorManager indicatorManager;
+    public WinScreen winScreen; 
     public CanvasGroup questionCanvas;
     public TextMeshProUGUI questionText;
     public Button yesButton;
@@ -26,35 +27,40 @@ public class QuestionManager : MonoBehaviour
     public float firstQuestionDelay = 30f;
     public float questionInterval = 20f;
 
-
-
     void Start()
-{
-    questionCanvas.alpha = 0f;
-    questionCanvas.blocksRaycasts = false;
-    questionCanvas.interactable = false;
-
-    yesButton.onClick.AddListener(OnYesClicked);
-    noButton.onClick.AddListener(OnNoClicked);
-
-    StartCoroutine(QuestionRoutine());
-}
-
-private IEnumerator QuestionRoutine()
-{
-    yield return new WaitForSeconds(firstQuestionDelay);
-
-    while (availableQuestions.Count > 0)
     {
-        ShowRandomQuestion();
+        questionCanvas.alpha = 0f;
+        questionCanvas.blocksRaycasts = false;
+        questionCanvas.interactable = false;
 
-        // Espera o jogador responder
-        yield return new WaitUntil(() => currentQuestion == null);
+        yesButton.onClick.AddListener(OnYesClicked);
+        noButton.onClick.AddListener(OnNoClicked);
 
-        // Espera até a próxima pergunta
-        yield return new WaitForSeconds(questionInterval);
+        StartCoroutine(QuestionRoutine());
     }
-}
+
+    private IEnumerator QuestionRoutine()
+    {
+        yield return new WaitForSeconds(firstQuestionDelay);
+
+        while (availableQuestions.Count > 0)
+        {
+            // Interrompe se o jogo foi ganho
+            if (winScreen != null && winScreen.IsGameWon) yield break; 
+
+            ShowRandomQuestion();
+
+            yield return new WaitUntil(() => currentQuestion == null || (winScreen != null && winScreen.IsGameWon));
+
+            if (winScreen != null && winScreen.IsGameWon)
+            {
+                if (currentQuestion != null) CloseQuestion();
+                yield break;
+            }
+
+            yield return new WaitForSeconds(questionInterval);
+        }
+    }
 
     public void ShowRandomQuestion()
     {
