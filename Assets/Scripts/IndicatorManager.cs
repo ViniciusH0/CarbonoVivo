@@ -4,10 +4,10 @@ using TMPro;
 public class IndicatorManager : MonoBehaviour
 {
     [Header("Values (0 to 10)")]
-    [Range(0, 10)] public float forestHealth = 5f;
-    [Range(0, 10)] public float water = 5f;
-    [Range(0, 10)] public float community = 5f;
-    [Range(0, 10)] public float resources = 5f;
+    [Range(0, 10)] public float forestHealth = 0f; // Começa em 0 (0%)
+    [Range(0, 10)] public float water = 1f;
+    [Range(0, 10)] public float community = 1f;
+    [Range(0, 10)] public float resources = 1f;
 
     [Header("UI Text References")]
     public TextMeshProUGUI forestHealthText;

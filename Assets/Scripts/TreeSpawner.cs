@@ -3,11 +3,15 @@ using UnityEngine;
 
 public class TreeSpawner : MonoBehaviour
 {
+    public IndicatorManager indicatorManager; // Link no Inspector
     public GameObject[] treePrefabs; 
     public MeshRenderer plane;
     public Collider[] spawnBlockers;
     
-    [Min(0)] public float multiplier = 1f;
+    [Header("Multiplier Limits")]
+    public float minMultiplier = 0.5f; 
+    public float maxMultiplier = 5.0f; 
+
     [Min(0.01f)] public float spawnInterval = 0.2f;
 
     [Header("Scale Settings")]
@@ -16,16 +20,18 @@ public class TreeSpawner : MonoBehaviour
 
     [Header("Rotation Settings")]
     [Tooltip("Ex: Se a árvore nasce deitada em 90 no X, coloque -90 aqui para corrigir.")]
-    public Vector3 rotationOffset; // NOVO: Offset de rotação
+    public Vector3 rotationOffset; 
 
     private List<GameObject> spawnedTrees = new List<GameObject>();
     private float timer = 0f;
 
     void Update()
     {
-        if (treePrefabs == null || treePrefabs.Length == 0) return;
+        if (treePrefabs == null || treePrefabs.Length == 0 || indicatorManager == null) return;
 
-        int targetCount = Mathf.RoundToInt(multiplier * 10);
+        // Conecta o health (0 a 10) aos limites do multiplier
+        float currentMultiplier = Mathf.Lerp(minMultiplier, maxMultiplier, indicatorManager.forestHealth / 10f);
+        int targetCount = Mathf.RoundToInt(currentMultiplier * 10);
 
         if (spawnedTrees.Count != targetCount)
         {
@@ -64,7 +70,6 @@ public class TreeSpawner : MonoBehaviour
         {
             GameObject prefabToSpawn = treePrefabs[Random.Range(0, treePrefabs.Length)];
             
-            // MODIFICADO: Agora usamos o rotationOffset no Instantiate
             Quaternion finalRotation = Quaternion.Euler(rotationOffset);
             GameObject newTree = Instantiate(prefabToSpawn, spawnPos, finalRotation, transform);
             
@@ -103,7 +108,6 @@ public class TreeSpawner : MonoBehaviour
         {
             if (blocker == null) continue;
             
-            // Verificação simples baseada nos limites (AABB)
             Vector3 checkPos = pos;
             checkPos.y = blocker.bounds.center.y;
             
