@@ -4,15 +4,8 @@ using UnityEngine;
 
 public class StepController : MonoBehaviour
 {
-    [System.Serializable]
-    public class Step
-    {
-        public string name;
-        public CanvasGroup canvasGroup;
-    }
-
     [Header("Steps")]
-    [SerializeField] private List<Step> steps = new List<Step>();
+    [SerializeField] private List<CanvasGroup> steps = new List<CanvasGroup>();
 
     [Header("Fade Settings")]
     [SerializeField] private float fadeDuration = 0.3f;
@@ -37,12 +30,12 @@ public class StepController : MonoBehaviour
         // fade out todos
         for (int i = 0; i < steps.Count; i++)
         {
-            SetInteractable(steps[i].canvasGroup, false);
-            yield return StartCoroutine(Fade(steps[i].canvasGroup, 0f));
+            SetInteractable(steps[i], false);
+            yield return StartCoroutine(Fade(steps[i], 0f));
         }
 
         // fade in target
-        CanvasGroup target = steps[targetId].canvasGroup;
+        CanvasGroup target = steps[targetId];
         yield return StartCoroutine(Fade(target, 1f));
 
         SetInteractable(target, true);
@@ -65,11 +58,6 @@ public class StepController : MonoBehaviour
         }
 
         cg.alpha = targetAlpha;
-    }
-
-    public void StartGame()
-    {
-        UnityEngine.SceneManagement.SceneManager.LoadScene(1);
     }
 
     public void ExitGame()
