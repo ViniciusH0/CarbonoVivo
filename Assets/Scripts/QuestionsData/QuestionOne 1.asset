@@ -14,11 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
   questionText: "Encontramos uma esp\xE9cie invasora se espalhando pela mata. Devemos
     remov\xEA-la?"
-  yesForestHealth: 10
+  yesForestHealth: 0.5
   yesWater: 0
   yesCommunity: 0
-  yesResources: -5
-  noForestHealth: -5
-  noWater: 0
-  noCommunity: 0
+  yesResources: -1
+  noForestHealth: -1.5
+  noWater: -1
+  noCommunity: -1
   noResources: 0

@@ -15,10 +15,10 @@ MonoBehaviour:
   questionText: "O reservat\xF3rio est\xE1 baixo. Devemos restringir o consumo de
     \xE1gua da comunidade?"
   yesForestHealth: 0
-  yesWater: 5
-  yesCommunity: -5
+  yesWater: 2
+  yesCommunity: -0.5
   yesResources: 0
   noForestHealth: 0
-  noWater: -10
-  noCommunity: 10
+  noWater: -2
+  noCommunity: 1
   noResources: 0

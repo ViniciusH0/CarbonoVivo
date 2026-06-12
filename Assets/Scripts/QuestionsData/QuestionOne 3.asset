@@ -10,15 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
-  m_Name: QuestionOne
+  m_Name: QuestionOne 3
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Um grupo de moradores quer plantar \xE1rvores nativas em uma \xE1rea
-    degradada."
+  questionText: "Um pesquisador prop\xF5e instalar sensores ambientais pela floresta."
   yesForestHealth: 1
-  yesWater: 1
-  yesCommunity: 0.5
-  yesResources: -1
+  yesWater: 0
+  yesCommunity: 0
+  yesResources: -0.5
   noForestHealth: 0
   noWater: 0
-  noCommunity: -0.5
-  noResources: 1
+  noCommunity: 0
+  noResources: 0

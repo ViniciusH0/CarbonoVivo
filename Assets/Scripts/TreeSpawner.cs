@@ -119,4 +119,6 @@ public class TreeSpawner : MonoBehaviour
         
         return false;
     }
+
+    public int GetTreeCount() => spawnedTrees.Count;
 }
