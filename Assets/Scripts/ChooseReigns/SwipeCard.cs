@@ -8,14 +8,31 @@ public class SwipeCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
 
     public ChoiceManager choiceManager;
 
-    public float decisionThreshold = 150f;
-    public float rotationFactor = 0.2f;
+    public float decisionThreshold = 120f;
+    public float rotationFactor = 0.15f;
     public float swipeForce = 2000f;
 
     private bool isSwipingAway = false;
     private Vector3 velocity;
 
     public System.Action<bool> OnDecisionMade;
+
+    private void Awake()
+    {
+        startCardPos = transform.position;
+    }
+
+    private void OnEnable()
+    {
+        ResetCardPosition();
+    }
+
+    public void ResetCardPosition()
+    {
+        isSwipingAway = false;
+        transform.position = startCardPos;
+        transform.rotation = Quaternion.identity;
+    }
 
     public void OnBeginDrag(PointerEventData eventData)
     {
@@ -30,7 +47,6 @@ public class SwipeCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
         if (isSwipingAway) return;
 
         float deltaX = eventData.position.x - startMousePos.x;
-
         transform.position = startCardPos + new Vector3(deltaX, 0, 0);
         transform.rotation = Quaternion.Euler(0, 0, deltaX * rotationFactor);
     }
@@ -44,36 +60,29 @@ public class SwipeCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
         if (Mathf.Abs(deltaX) > decisionThreshold)
         {
             bool decision = deltaX > 0;
-
             OnDecisionMade?.Invoke(decision);
-
             isSwipingAway = true;
 
             float direction = decision ? 1f : -1f;
-
             velocity = new Vector3(direction * swipeForce, 0, 0);
 
-              Debug.Log(decision ? "SIM (direita)" : "NÃO (esquerda)");
+            if (choiceManager != null)
+            {
+                choiceManager.AddChoice(decision);
+            }
 
-              choiceManager.AddChoice(decision);
+            if (QuestionManager.Instance != null)
+            {
+                if (decision) QuestionManager.Instance.OnYesClicked();
+                else QuestionManager.Instance.OnNoClicked();
+            }
+
+            ResetCardPosition();
         }
         else
         {
             transform.position = startCardPos;
             transform.rotation = Quaternion.identity;
-        }
-    }
-
-    void Update()
-    {
-        if (isSwipingAway)
-        {
-            transform.position += velocity * Time.deltaTime;
-
-            if (Mathf.Abs(transform.position.x) > Screen.width * 1.5f)
-            {
-                Destroy(gameObject);
-            }
         }
     }
 }

@@ -370,12 +370,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StepController
   steps:
-  - name: 
-    canvasGroup: {fileID: 410806638}
-  - name: 
-    canvasGroup: {fileID: 2142705471}
-  - name: 
-    canvasGroup: {fileID: 1634377715}
+  - {fileID: 410806638}
+  - {fileID: 2142705471}
+  - {fileID: 1634377715}
+  returnToMenuButtons: []
+  mainMenuStepId: 0
   fadeDuration: 0.3
 --- !u!4 &1449070197
 Transform:
@@ -423,7 +422,7 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1648046542}
   m_Enabled: 1
-  serializedVersion: 12
+  serializedVersion: 13
   m_Type: 1
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
@@ -475,7 +474,7 @@ Light:
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ForceVisible: 0
-  m_ShadowRadius: 0
+  m_ShapeRadius: 0
   m_ShadowAngle: 0
   m_LightUnit: 1
   m_LuxAtDistance: 1

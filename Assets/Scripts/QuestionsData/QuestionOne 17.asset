@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
+  m_Name: QuestionOne 17
+  m_EditorClassIdentifier: Assembly-CSharp::QuestionData
+  questionText: "Corredores Ecol\xF3gicos: Propriet\xE1rios rurais vizinhos aceitam interligar seus fragmentos de mata \xE0 reserva principal. Estabelecer o corredor?"
+  yesForestHealth: 2.2
+  yesWater: 1.2
+  yesCommunity: 1
+  yesResources: -1.2
+  noForestHealth: -1.5
+  noWater: -0.8
+  noCommunity: -0.5
+  noResources: 0.5
