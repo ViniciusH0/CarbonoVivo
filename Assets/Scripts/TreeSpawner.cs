@@ -44,30 +44,8 @@ public class TreeSpawner : MonoBehaviour
 
     void Update()
     {
-        if (treePrefabs == null || treePrefabs.Length == 0 || indicatorManager == null) return;
-
-        // Conecta o health (0 a 10) aos limites do multiplier, respeitando as mudas manuais
-        float currentMultiplier = Mathf.Lerp(minMultiplier, maxMultiplier, indicatorManager.forestHealth / 10f);
-        int targetCount = Mathf.Max(Mathf.RoundToInt(currentMultiplier * 10), manualPlantedCount);
-
-        if (spawnedTrees.Count != targetCount)
-        {
-            timer += Time.deltaTime;
-            
-            if (timer >= spawnInterval)
-            {
-                timer = 0f;
-                
-                if (spawnedTrees.Count < targetCount)
-                    SpawnTree();
-                else if (spawnedTrees.Count > targetCount && spawnedTrees.Count > manualPlantedCount)
-                    RemoveTree();
-            }
-        }
-        else
-        {
-            timer = 0f;
-        }
+        // As árvores só surgem quando o jogador clica para plantar uma árvore
+        spawnedTrees.RemoveAll(t => t == null);
     }
 
     public GameObject ForceSpawnSingleTree(bool isManual = false)

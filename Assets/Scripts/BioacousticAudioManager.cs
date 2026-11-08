@@ -90,6 +90,18 @@ public class BioacousticAudioManager : MonoBehaviour
         sfxSource.PlayOneShot(clip, 0.6f);
     }
 
+    public void PlayPositiveChime()
+    {
+        AudioClip clip = GenerateShortTone(587.33f, 880f, 0.22f); // D5 -> A5 (brilho ascendente suave)
+        if (sfxSource != null) sfxSource.PlayOneShot(clip, 0.65f);
+    }
+
+    public void PlayNegativeWarning()
+    {
+        AudioClip clip = GenerateShortTone(220f, 150f, 0.28f); // tom grave descendente suave
+        if (sfxSource != null) sfxSource.PlayOneShot(clip, 0.65f);
+    }
+
     public void PlayTreeClickSound()
     {
         AudioClip clip = GenerateShortTone(440f, 440f, 0.08f, true); // toque suave

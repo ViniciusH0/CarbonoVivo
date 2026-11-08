@@ -9,9 +9,9 @@ public class DayNightCycle : MonoBehaviour
 
     [Header("Cycle Settings")]
     [Tooltip("Duração de um ciclo completo de 24 horas em segundos reais")]
-    [SerializeField] private float dayDurationSeconds = 120f;
+    [SerializeField] private float dayDurationSeconds = 300f;
     [Range(0f, 24f)]
-    [SerializeField] private float timeOfDay = 8.5f; // Começa às 08:30 (manhã agradável)
+    [SerializeField] private float timeOfDay = 12.0f; // Começa no meio-dia (iluminação base perfeita original)
     [SerializeField] private bool pauseCycle = false;
     [SerializeField] private float sunIntensityMultiplier = 1.0f;
     [SerializeField] private float fogDensityMultiplier = 1.0f;
@@ -22,10 +22,37 @@ public class DayNightCycle : MonoBehaviour
     public float SunIntensityMultiplier { get => sunIntensityMultiplier; set => sunIntensityMultiplier = Mathf.Max(0.05f, value); }
     public float FogDensityMultiplier { get => fogDensityMultiplier; set => fogDensityMultiplier = Mathf.Max(0f, value); }
 
-    public void SetTime(float hour)
+    public void SetTime(float hour, bool instant = false)
     {
         timeOfDay = Mathf.Repeat(hour, 24f);
+        if (instant && directionalLight != null)
+        {
+            float rotX, rotY;
+            if (timeOfDay >= 6f && timeOfDay <= 18f)
+            {
+                float sunProgress = (timeOfDay - 6f) / 12f;
+                float altitudeFactor = Mathf.Sin(sunProgress * Mathf.PI);
+                rotX = Mathf.Lerp(26f, 35f, Mathf.Pow(altitudeFactor, 0.5f));
+                rotY = Mathf.Lerp(-65f, -10f, sunProgress);
+            }
+            else
+            {
+                float nightProgress = (timeOfDay > 18f) ? (timeOfDay - 18f) / 12f : (timeOfDay + 6f) / 12f;
+                float moonAltitudeFactor = Mathf.Sin(nightProgress * Mathf.PI);
+                rotX = Mathf.Lerp(26f, 40f, Mathf.Pow(moonAltitudeFactor, 0.5f));
+                rotY = Mathf.Lerp(-10f, -65f, nightProgress);
+            }
+            directionalLight.transform.rotation = Quaternion.Euler(rotX, rotY, 0f);
+        }
     }
+
+    [Header("Shadow Settings")]
+    [SerializeField] private float dayShadowStrength = 0.85f;
+    [SerializeField] private float nightShadowStrength = 0.45f;
+    [SerializeField] private float targetShadowDistance = 380f;
+
+    public float DayShadowStrength { get => dayShadowStrength; set => dayShadowStrength = Mathf.Clamp01(value); }
+    public float NightShadowStrength { get => nightShadowStrength; set => nightShadowStrength = Mathf.Clamp01(value); }
 
     [Header("Light References")]
     [SerializeField] private Light directionalLight;
@@ -82,14 +109,7 @@ public class DayNightCycle : MonoBehaviour
             if (lightGo != null) directionalLight = lightGo.GetComponent<Light>();
         }
 
-        if (directionalLight != null)
-        {
-            directionalLight.shadows = LightShadows.Soft;
-            directionalLight.shadowStrength = 0.85f;
-            directionalLight.shadowBias = 0.05f;
-            directionalLight.shadowNormalBias = 0.4f;
-            RenderSettings.sun = directionalLight;
-        }
+        EnsureShadowSettings();
 
         if (timeDisplayText == null)
         {
@@ -97,74 +117,99 @@ public class DayNightCycle : MonoBehaviour
         }
     }
 
+    private void EnsureShadowSettings()
+    {
+        // Garante que o pipeline URP tenha distância de sombras suficiente para a câmera isométrica
+        var urpAsset = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
+        if (urpAsset != null)
+        {
+            if (urpAsset.shadowDistance < targetShadowDistance)
+            {
+                urpAsset.shadowDistance = targetShadowDistance;
+            }
+        }
+
+        if (directionalLight != null)
+        {
+            directionalLight.shadows = LightShadows.Soft;
+            directionalLight.shadowStrength = dayShadowStrength;
+            directionalLight.shadowBias = 0.02f;
+            directionalLight.shadowNormalBias = 0.25f;
+            RenderSettings.sun = directionalLight;
+        }
+    }
+
     private void InitializeLightingPhases()
     {
-        // 1. Alvorada / Dawn (06:00)
+        // 1. Alvorada / Dawn (06:00) - Manhã suave, ambarina e aconchegante
         dawnPhase = new LightingPhase
         {
             name = "Alvorada",
             hour = 6.0f,
-            sunColor = new Color(1.0f, 0.78f, 0.54f),
-            sunIntensity = 1.15f,
-            skyColor = new Color(0.85f, 0.74f, 0.65f),
-            equatorColor = new Color(0.42f, 0.52f, 0.35f),
-            groundColor = new Color(0.24f, 0.18f, 0.12f),
-            fogColor = new Color(0.85f, 0.72f, 0.62f),
-            fogDensity = 0.0055f,
-            cameraBgColor = new Color(0.82f, 0.68f, 0.58f)
+            sunColor = new Color(1.0f, 0.84f, 0.60f, 1.0f),
+            sunIntensity = 1.85f,
+            skyColor = new Color(0.65f, 0.72f, 0.85f, 1.0f),
+            equatorColor = new Color(0.20f, 0.30f, 0.20f, 1.0f),
+            groundColor = new Color(0.14f, 0.10f, 0.08f, 1.0f),
+            fogColor = new Color(0.70f, 0.65f, 0.60f, 1.0f),
+            fogDensity = 0.0015f,
+            cameraBgColor = new Color(0.12f, 0.16f, 0.11f, 1.0f)
         };
 
-        // 2. Dia / Midday (12:00) - Verde exuberante de Mata Atlântica
+        // 2. Dia / Golden Hour (12:00) - ILUMINAÇÃO GOLDEN HOUR CINEMATOGRÁFICA, NÍTIDA E VIBRANTE
         dayPhase = new LightingPhase
         {
             name = "Dia",
             hour = 12.0f,
-            sunColor = new Color(1.0f, 0.96f, 0.88f),
-            sunIntensity = 1.55f,
-            skyColor = new Color(0.72f, 0.88f, 0.98f),
-            equatorColor = new Color(0.32f, 0.58f, 0.36f), // Reflexo de clorofila da copa
-            groundColor = new Color(0.25f, 0.19f, 0.14f),
-            fogColor = new Color(0.65f, 0.82f, 0.84f),
-            fogDensity = 0.0035f,
-            cameraBgColor = new Color(0.62f, 0.78f, 0.88f)
+            sunColor = new Color(1.0f, 0.76f, 0.42f, 1.0f), // Luz solar dourada-âmbar rica
+            sunIntensity = 2.05f,                             // Realce límpido e vibrante das faces frontais
+            skyColor = new Color(0.62f, 0.70f, 0.82f, 1.0f),   // Contraste cinematográfico com as sombras
+            equatorColor = new Color(0.20f, 0.32f, 0.20f, 1.0f),// Reflexo verde da floresta
+            groundColor = new Color(0.15f, 0.11f, 0.08f, 1.0f), // Terra terracota rica
+            fogColor = new Color(0.75f, 0.68f, 0.58f, 1.0f),
+            fogDensity = 0.0015f,
+            cameraBgColor = new Color(0.12f, 0.16f, 0.11f, 1.0f)
         };
 
-        // 3. Entardecer / Sunset (18:00)
+        // 3. Entardecer / Sunset (18:00) - Dourado alaranjado crepuscular
         sunsetPhase = new LightingPhase
         {
             name = "Entardecer",
             hour = 18.0f,
-            sunColor = new Color(1.0f, 0.54f, 0.24f),
-            sunIntensity = 1.15f,
-            skyColor = new Color(0.88f, 0.55f, 0.42f),
-            equatorColor = new Color(0.48f, 0.42f, 0.26f),
-            groundColor = new Color(0.28f, 0.18f, 0.12f),
-            fogColor = new Color(0.88f, 0.52f, 0.38f),
-            fogDensity = 0.006f,
-            cameraBgColor = new Color(0.82f, 0.46f, 0.32f)
+            sunColor = new Color(1.0f, 0.65f, 0.35f, 1.0f),
+            sunIntensity = 1.90f,
+            skyColor = new Color(0.70f, 0.58f, 0.72f, 1.0f),
+            equatorColor = new Color(0.22f, 0.28f, 0.22f, 1.0f),
+            groundColor = new Color(0.16f, 0.10f, 0.08f, 1.0f),
+            fogColor = new Color(0.76f, 0.62f, 0.55f, 1.0f),
+            fogDensity = 0.0018f,
+            cameraBgColor = new Color(0.10f, 0.12f, 0.10f, 1.0f)
         };
 
-        // 4. Noite / Night (00:00) - Luar místico e musgo noturno
+        // 4. Noite / Night (00:00) - Luar sereno e cristalino com visibilidade preservada
         nightPhase = new LightingPhase
         {
             name = "Noite",
             hour = 24.0f, // e 0.0f
-            sunColor = new Color(0.45f, 0.62f, 0.88f), // Luz da Lua
-            sunIntensity = 0.42f,
-            skyColor = new Color(0.08f, 0.14f, 0.25f),
-            equatorColor = new Color(0.08f, 0.16f, 0.14f),
-            groundColor = new Color(0.06f, 0.08f, 0.10f),
-            fogColor = new Color(0.06f, 0.12f, 0.22f),
-            fogDensity = 0.0048f,
-            cameraBgColor = new Color(0.05f, 0.09f, 0.16f)
+            sunColor = new Color(0.60f, 0.75f, 0.98f, 1.0f), // Luar azul translúcido
+            sunIntensity = 0.75f,
+            skyColor = new Color(0.24f, 0.32f, 0.45f, 1.0f),
+            equatorColor = new Color(0.12f, 0.18f, 0.16f, 1.0f),
+            groundColor = new Color(0.08f, 0.08f, 0.08f, 1.0f),
+            fogColor = new Color(0.30f, 0.38f, 0.45f, 1.0f),
+            fogDensity = 0.0020f,
+            cameraBgColor = new Color(0.06f, 0.08f, 0.08f, 1.0f)
         };
     }
 
     private void SetupForestAmbientLighting()
     {
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-        RenderSettings.fog = true;
-        RenderSettings.fogMode = FogMode.ExponentialSquared;
+        RenderSettings.ambientSkyColor = new Color(0.62f, 0.70f, 0.82f, 1.0f);
+        RenderSettings.ambientEquatorColor = new Color(0.20f, 0.32f, 0.20f, 1.0f);
+        RenderSettings.ambientGroundColor = new Color(0.15f, 0.11f, 0.08f, 1.0f);
+        RenderSettings.ambientIntensity = 1.0f;
+        RenderSettings.fog = false;
     }
 
     private void Update()
@@ -198,6 +243,11 @@ public class DayNightCycle : MonoBehaviour
 
             directionalLight.color = Color.Lerp(directionalLight.color, targetSunColor, Time.deltaTime * 3f);
             directionalLight.intensity = Mathf.Lerp(directionalLight.intensity, targetSunIntensity, Time.deltaTime * 3f);
+
+            // Sombras dinâmicas: firmes e nítidas durante o dia, suaves ao luar, difusas na chuva
+            float baseShadow = (timeOfDay >= 6f && timeOfDay <= 18f) ? dayShadowStrength : nightShadowStrength;
+            float targetShadowStrength = baseShadow * (1f - rainWeight * 0.5f);
+            directionalLight.shadowStrength = Mathf.Lerp(directionalLight.shadowStrength, targetShadowStrength, Time.deltaTime * 3f);
         }
 
         // Iluminação de dossel florestal (Trilight)
@@ -209,12 +259,28 @@ public class DayNightCycle : MonoBehaviour
         RenderSettings.ambientEquatorColor = Color.Lerp(RenderSettings.ambientEquatorColor, targetEquator, Time.deltaTime * 3f);
         RenderSettings.ambientGroundColor = Color.Lerp(RenderSettings.ambientGroundColor, targetGround, Time.deltaTime * 3f);
 
-        // Neblina e profundidade atmosférica
-        Color targetFogColor = Color.Lerp(currentParams.fogColor, new Color(0.45f, 0.52f, 0.58f), rainWeight);
-        float targetFogDensity = Mathf.Lerp(currentParams.fogDensity, 0.012f, rainWeight) * fogDensityMultiplier;
+        // Neblina e profundidade atmosférica: ativa apenas se estiver chovendo ou se configurada no painel de debug
+        if (rainWeight > 0.05f)
+        {
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            Color rainFogColor = new Color(0.45f, 0.52f, 0.58f, 1.0f);
+            float rainFogDensity = Mathf.Lerp(0.001f, 0.009f, rainWeight) * fogDensityMultiplier;
 
-        RenderSettings.fogColor = Color.Lerp(RenderSettings.fogColor, targetFogColor, Time.deltaTime * 3f);
-        RenderSettings.fogDensity = Mathf.Lerp(RenderSettings.fogDensity, targetFogDensity, Time.deltaTime * 3f);
+            RenderSettings.fogColor = Color.Lerp(RenderSettings.fogColor, rainFogColor, Time.deltaTime * 3f);
+            RenderSettings.fogDensity = Mathf.Lerp(RenderSettings.fogDensity, rainFogDensity, Time.deltaTime * 3f);
+        }
+        else if (fogDensityMultiplier > 1.05f)
+        {
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogColor = Color.Lerp(RenderSettings.fogColor, currentParams.fogColor, Time.deltaTime * 3f);
+            RenderSettings.fogDensity = Mathf.Lerp(RenderSettings.fogDensity, 0.002f * (fogDensityMultiplier - 1f), Time.deltaTime * 3f);
+        }
+        else
+        {
+            RenderSettings.fog = false;
+        }
 
         if (targetCamera == null) targetCamera = Camera.main;
         if (targetCamera != null)
@@ -228,31 +294,38 @@ public class DayNightCycle : MonoBehaviour
     {
         if (directionalLight == null) return;
 
-        // Órbita solar:
-        // Dia (06h às 18h): Sol sobe pelo leste (rot X 10 a 65), desce no oeste
-        // Noite (18h às 06h): Lua sobe pelo lado oposto para dar iluminação suave
+        // O ângulo de iluminação Golden Hour é raiado e cinematográfico:
+        // - Manhã (06h): (26, -65, 0) -> raios longos e suaves matinais
+        // - Meio-dia (12h): (35, -38, 0) -> Golden Hour vibrante com sombras elegantes e frontais iluminadas
+        // - Tarde (18h): (26, -10, 0) -> entardecer dourado e aconchegante
+        // As faces frontais da estação e montanhas permanecem sempre limpas, vibrantes e bem iluminadas!
         float rotX;
         float rotY;
 
         if (timeOfDay >= 6f && timeOfDay <= 18f)
         {
-            // Trajetória do Sol durante o dia
             float sunProgress = (timeOfDay - 6f) / 12f; // 0 a 1
-            rotX = Mathf.Lerp(15f, 65f, Mathf.Sin(sunProgress * Mathf.PI));
-            rotY = Mathf.Lerp(45f, 225f, sunProgress);
+            float altitudeFactor = Mathf.Sin(sunProgress * Mathf.PI);
+
+            rotX = Mathf.Lerp(26f, 35f, Mathf.Pow(altitudeFactor, 0.5f));
+            rotY = Mathf.Lerp(-65f, -10f, sunProgress);
         }
         else
         {
-            // Trajetória da Lua durante a noite
             float nightProgress = (timeOfDay > 18f) ? (timeOfDay - 18f) / 12f : (timeOfDay + 6f) / 12f;
-            rotX = Mathf.Lerp(20f, 55f, Mathf.Sin(nightProgress * Mathf.PI));
-            rotY = Mathf.Lerp(225f, 405f, nightProgress) % 360f;
+            float moonAltitudeFactor = Mathf.Sin(nightProgress * Mathf.PI);
+
+            rotX = Mathf.Lerp(26f, 40f, Mathf.Pow(moonAltitudeFactor, 0.5f));
+            rotY = Mathf.Lerp(-10f, -65f, nightProgress);
         }
 
+        Quaternion targetRotation = Quaternion.Euler(rotX, rotY, 0f);
+
+        float slerpSpeed = pauseCycle ? 18f : 8f;
         directionalLight.transform.rotation = Quaternion.Slerp(
             directionalLight.transform.rotation,
-            Quaternion.Euler(rotX, rotY, 0f),
-            Time.deltaTime * 2f
+            targetRotation,
+            Time.deltaTime * slerpSpeed
         );
     }
 

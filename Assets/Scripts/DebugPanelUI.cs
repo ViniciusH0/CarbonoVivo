@@ -20,6 +20,9 @@ public class DebugPanelUI : MonoBehaviour
     private GameObject tabContentDesign;
     private GameObject tabContentVisual;
     private GameObject tabContentActions;
+    private CanvasGroup tabGroupDesign;
+    private CanvasGroup tabGroupVisual;
+    private CanvasGroup tabGroupActions;
     private Button tabBtnDesign;
     private Button tabBtnVisual;
     private Button tabBtnActions;
@@ -192,7 +195,9 @@ public class DebugPanelUI : MonoBehaviour
         // Limpa filhos residuais caso existam
         for (int i = transform.childCount - 1; i >= 0; i--)
         {
-            Destroy(transform.GetChild(i).gameObject);
+            var child = transform.GetChild(i).gameObject;
+            if (Application.isPlaying) Destroy(child);
+            else DestroyImmediate(child);
         }
 
         // 1. Localiza ou usa Canvas
@@ -243,8 +248,8 @@ public class DebugPanelUI : MonoBehaviour
         rt.anchorMin = new Vector2(0f, 1f);
         rt.anchorMax = new Vector2(0f, 1f);
         rt.pivot = new Vector2(0f, 1f);
-        rt.anchoredPosition = new Vector2(25f, -25f);
-        rt.sizeDelta = new Vector2(130f, 42f);
+        rt.anchoredPosition = new Vector2(40f, -150f);
+        rt.sizeDelta = new Vector2(130f, 38f);
 
         var img = triggerButtonObj.AddComponent<Image>();
         img.color = new Color(0.12f, 0.20f, 0.16f, 0.90f);
@@ -405,15 +410,15 @@ public class DebugPanelUI : MonoBehaviour
         contentAreaRt.offsetMax = new Vector2(-16f, -140f); // espaço para header + tabs
 
         // 1. Tab Game Design
-        tabContentDesign = CreateScrollTab(contentContainerGo.transform, "Content_Design", out Transform designContent);
+        tabContentDesign = CreateScrollTab(contentContainerGo.transform, "Content_Design", out Transform designContent, out tabGroupDesign);
         BuildGameDesignTab(designContent);
 
         // 2. Tab Visual
-        tabContentVisual = CreateScrollTab(contentContainerGo.transform, "Content_Visual", out Transform visualContent);
+        tabContentVisual = CreateScrollTab(contentContainerGo.transform, "Content_Visual", out Transform visualContent, out tabGroupVisual);
         BuildVisualTab(visualContent);
 
         // 3. Tab Actions
-        tabContentActions = CreateScrollTab(contentContainerGo.transform, "Content_Actions", out Transform actionsContent);
+        tabContentActions = CreateScrollTab(contentContainerGo.transform, "Content_Actions", out Transform actionsContent, out tabGroupActions);
         BuildActionsTab(actionsContent);
 
         // Footer Bar (Salvar, Resetar, Toast)
@@ -451,7 +456,7 @@ public class DebugPanelUI : MonoBehaviour
         return btn;
     }
 
-    private GameObject CreateScrollTab(Transform parent, string name, out Transform contentTransform)
+    private GameObject CreateScrollTab(Transform parent, string name, out Transform contentTransform, out CanvasGroup outCanvasGroup)
     {
         GameObject scrollGo = new GameObject(name);
         scrollGo.transform.SetParent(parent, false);
@@ -460,6 +465,8 @@ public class DebugPanelUI : MonoBehaviour
         sRt.anchorMax = Vector2.one;
         sRt.offsetMin = Vector2.zero;
         sRt.offsetMax = Vector2.zero;
+
+        outCanvasGroup = scrollGo.AddComponent<CanvasGroup>();
 
         var scrollRect = scrollGo.AddComponent<ScrollRect>();
         scrollRect.horizontal = false;
@@ -492,8 +499,8 @@ public class DebugPanelUI : MonoBehaviour
         cRt.offsetMax = Vector2.zero;
 
         var vlg = contentGo.AddComponent<VerticalLayoutGroup>();
-        vlg.padding = new RectOffset(6, 6, 8, 8);
-        vlg.spacing = 8;
+        vlg.padding = new RectOffset(10, 10, 10, 10);
+        vlg.spacing = 10;
         vlg.childControlWidth = true;
         vlg.childControlHeight = true;
         vlg.childForceExpandWidth = true;
@@ -513,23 +520,33 @@ public class DebugPanelUI : MonoBehaviour
     {
         currentTab = index;
 
-        if (tabContentDesign != null) tabContentDesign.SetActive(index == 0);
-        if (tabContentVisual != null) tabContentVisual.SetActive(index == 1);
-        if (tabContentActions != null) tabContentActions.SetActive(index == 2);
+        SetTabGroup(tabGroupDesign, index == 0);
+        SetTabGroup(tabGroupVisual, index == 1);
+        SetTabGroup(tabGroupActions, index == 2);
 
         if (tabImgDesign != null) tabImgDesign.color = (index == 0) ? ACTIVE_TAB_COLOR : INACTIVE_TAB_COLOR;
         if (tabImgVisual != null) tabImgVisual.color = (index == 1) ? ACTIVE_TAB_COLOR : INACTIVE_TAB_COLOR;
         if (tabImgActions != null) tabImgActions.color = (index == 2) ? ACTIVE_TAB_COLOR : INACTIVE_TAB_COLOR;
 
+        Canvas.ForceUpdateCanvases();
+
         GameObject activeObj = (index == 0) ? tabContentDesign : (index == 1) ? tabContentVisual : tabContentActions;
         if (activeObj != null)
         {
-            var contentT = activeObj.transform.Find("Viewport/Content");
+            var contentT = activeObj.transform.Find("Viewport/Content") as RectTransform;
             if (contentT != null)
             {
-                LayoutRebuilder.ForceRebuildLayoutImmediate(contentT.GetComponent<RectTransform>());
+                LayoutRebuilder.ForceRebuildLayoutImmediate(contentT);
             }
         }
+    }
+
+    private void SetTabGroup(CanvasGroup cg, bool visible)
+    {
+        if (cg == null) return;
+        cg.alpha = visible ? 1f : 0f;
+        cg.blocksRaycasts = visible;
+        cg.interactable = visible;
     }
 
     private void BuildGameDesignTab(Transform parent)
@@ -836,6 +853,8 @@ public class DebugPanelUI : MonoBehaviour
         var le = headerGo.AddComponent<LayoutElement>();
         le.preferredHeight = 32f;
         le.minHeight = 32f;
+        le.minWidth = 350f;
+        le.preferredWidth = 620f;
         le.flexibleWidth = 1f;
 
         var img = headerGo.AddComponent<Image>();
@@ -873,6 +892,8 @@ public class DebugPanelUI : MonoBehaviour
         var le = rowGo.AddComponent<LayoutElement>();
         le.preferredHeight = 56f;
         le.minHeight = 56f;
+        le.minWidth = 350f;
+        le.preferredWidth = 620f;
         le.flexibleWidth = 1f;
 
         var bg = rowGo.AddComponent<Image>();
@@ -994,6 +1015,8 @@ public class DebugPanelUI : MonoBehaviour
         var le = rowGo.AddComponent<LayoutElement>();
         le.preferredHeight = 46f;
         le.minHeight = 46f;
+        le.minWidth = 350f;
+        le.preferredWidth = 620f;
         le.flexibleWidth = 1f;
 
         var bg = rowGo.AddComponent<Image>();
@@ -1061,6 +1084,8 @@ public class DebugPanelUI : MonoBehaviour
         var le = btnGo.AddComponent<LayoutElement>();
         le.preferredHeight = 46f;
         le.minHeight = 46f;
+        le.minWidth = 350f;
+        le.preferredWidth = 620f;
         le.flexibleWidth = 1f;
 
         var img = btnGo.AddComponent<Image>();

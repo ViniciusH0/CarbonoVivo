@@ -59,9 +59,9 @@ public class SwipeCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
 
         if (Mathf.Abs(deltaX) > decisionThreshold)
         {
+            isSwipingAway = true;
             bool decision = deltaX > 0;
             OnDecisionMade?.Invoke(decision);
-            isSwipingAway = true;
 
             float direction = decision ? 1f : -1f;
             velocity = new Vector3(direction * swipeForce, 0, 0);
@@ -77,7 +77,9 @@ public class SwipeCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDra
                 else QuestionManager.Instance.OnNoClicked();
             }
 
-            ResetCardPosition();
+            // Reposiciona o card mantendo isSwipingAway = true até a próxima questão
+            transform.position = startCardPos;
+            transform.rotation = Quaternion.identity;
         }
         else
         {

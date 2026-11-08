@@ -482,4 +482,26 @@ public static class GameSceneSetupEditor
 
         return btnGo;
     }
+
+    [MenuItem("CarbonoVivo/Validate Project")]
+    public static void ValidateProject()
+    {
+        Debug.Log("[CarbonoVivo] VALIDATION: Starting validation...");
+        var scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Scenes/GameScene_Test.unity");
+        Debug.Log($"[CarbonoVivo] VALIDATION: Opened scene {scene.name}, isLoaded={scene.isLoaded}");
+
+        var spawner = Object.FindAnyObjectByType<TreeSpawner>();
+        Debug.Log($"[CarbonoVivo] VALIDATION: TreeSpawner found: {spawner != null}");
+
+        var onboarding = Object.FindAnyObjectByType<OnboardingManager>();
+        Debug.Log($"[CarbonoVivo] VALIDATION: OnboardingManager found: {onboarding != null}");
+
+        var planting = Object.FindAnyObjectByType<InteractivePlanting>();
+        Debug.Log($"[CarbonoVivo] VALIDATION: InteractivePlanting found: {planting != null}");
+
+        var lumberjack = Object.FindAnyObjectByType<LumberjackManager>();
+        Debug.Log($"[CarbonoVivo] VALIDATION: LumberjackManager found: {lumberjack != null}");
+
+        Debug.Log("[CarbonoVivo] VALIDATION SUCCESSFUL!");
+    }
 }

@@ -145,8 +145,8 @@ public class GameDebugConfigData
         lumberjackHitsToDefeat = 3;
         lumberjackCutTimeLimit = 15f;
 
-        timeOfDay = 8.5f;
-        dayCycleDuration = 120f;
+        timeOfDay = 12.0f;
+        dayCycleDuration = 300f;
         pauseDayCycle = false;
         sunIntensityMultiplier = 1.0f;
         fogDensityMultiplier = 1.0f;

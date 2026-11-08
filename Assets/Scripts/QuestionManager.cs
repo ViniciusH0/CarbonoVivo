@@ -135,10 +135,17 @@ public class QuestionManager : MonoBehaviour
     {
         if (isFading || currentQuestion == null) return;
         
-        indicatorManager.ModifyForestHealth(currentQuestion.yesForestHealth);
-        indicatorManager.ModifyWater(currentQuestion.yesWater);
-        indicatorManager.ModifyCommunity(currentQuestion.yesCommunity);
-        indicatorManager.ModifyResources(currentQuestion.yesResources);
+        if (indicatorManager == null) indicatorManager = IndicatorManager.Instance ?? FindAnyObjectByType<IndicatorManager>();
+
+        if (indicatorManager != null)
+        {
+            indicatorManager.ApplyChoiceImpacts(
+                currentQuestion.yesForestHealth,
+                currentQuestion.yesWater,
+                currentQuestion.yesCommunity,
+                currentQuestion.yesResources
+            );
+        }
 
         ShowFeedbackToast(true);
         CloseQuestion();
@@ -148,10 +155,17 @@ public class QuestionManager : MonoBehaviour
     {
         if (isFading || currentQuestion == null) return;
         
-        indicatorManager.ModifyForestHealth(currentQuestion.noForestHealth);
-        indicatorManager.ModifyWater(currentQuestion.noWater);
-        indicatorManager.ModifyCommunity(currentQuestion.noCommunity);
-        indicatorManager.ModifyResources(currentQuestion.noResources);
+        if (indicatorManager == null) indicatorManager = IndicatorManager.Instance ?? FindAnyObjectByType<IndicatorManager>();
+
+        if (indicatorManager != null)
+        {
+            indicatorManager.ApplyChoiceImpacts(
+                currentQuestion.noForestHealth,
+                currentQuestion.noWater,
+                currentQuestion.noCommunity,
+                currentQuestion.noResources
+            );
+        }
 
         ShowFeedbackToast(false);
         CloseQuestion();

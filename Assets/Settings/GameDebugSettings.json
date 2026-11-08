@@ -1,16 +1,16 @@
 {
-    "decisionInterval": 20.41809844970703,
-    "carbonGenerationMultiplier": 0.20473402738571168,
+    "decisionInterval": 20.0,
+    "carbonGenerationMultiplier": 1.0,
     "treePlantCost": 10.0,
     "indicatorDecayMultiplier": 1.0,
-    "lumberjackSpawnInterval": 5.0,
+    "lumberjackSpawnInterval": 30.0,
     "lumberjackHitsToDefeat": 3,
     "lumberjackCutTimeLimit": 15.0,
-    "timeOfDay": 8.5,
-    "dayCycleDuration": 120.0,
+    "timeOfDay": 12.0,
+    "dayCycleDuration": 240.0,
     "pauseDayCycle": false,
     "sunIntensityMultiplier": 1.0,
-    "fogDensityMultiplier": 0.05085807293653488,
+    "fogDensityMultiplier": 1.0,
     "rainInterval": 80.0,
     "rainDuration": 28.0
 }

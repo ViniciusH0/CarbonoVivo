@@ -64,7 +64,8 @@ public class LumberjackManager : MonoBehaviour
     {
         // Só atua se o jogo estiver rodando e não houver um lenhador ativo
         if (currentLumberjack != null) return;
-        if (TreeSpawner.Instance == null || TreeSpawner.Instance.GetTreeCount() < 2) return;
+        if (OnboardingManager.Instance != null && OnboardingManager.Instance.IsActive) return;
+        if (TreeSpawner.Instance == null || TreeSpawner.Instance.GetTreeCount() < 1) return;
 
         timer += Time.deltaTime;
         if (timer >= currentTargetInterval)
@@ -184,13 +185,14 @@ public class LumberjackManager : MonoBehaviour
 
         // Colisor generoso para cliques fáceis no mobile/PC
         var col = root.AddComponent<CapsuleCollider>();
-        col.radius = 1.15f;
-        col.height = 3.2f;
-        col.center = new Vector3(0, 1.5f, 0);
+        col.radius = 1.7f;
+        col.height = 5.2f;
+        col.center = new Vector3(0, 2.3f, 0);
 
-        // Container do modelo do personagem
+        // Container do modelo do personagem (ampliado para 1.85x para visualização clara)
         GameObject model = new GameObject("CharacterModel");
         model.transform.SetParent(root.transform, false);
+        model.transform.localScale = Vector3.one * 1.85f;
 
         Shader litShader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard") ?? Shader.Find("Sprites/Default");
         Shader unlitShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
@@ -258,8 +260,8 @@ public class LumberjackManager : MonoBehaviour
         GameObject beacon = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         beacon.name = "AlertBeacon";
         beacon.transform.SetParent(root.transform, false);
-        beacon.transform.localPosition = new Vector3(0, 6.0f, 0);
-        beacon.transform.localScale = new Vector3(0.6f, 6.0f, 0.6f);
+        beacon.transform.localPosition = new Vector3(0, 7.5f, 0);
+        beacon.transform.localScale = new Vector3(0.85f, 7.5f, 0.85f);
         var beaconCol = beacon.GetComponent<Collider>();
         if (beaconCol != null) Destroy(beaconCol);
 
@@ -274,7 +276,7 @@ public class LumberjackManager : MonoBehaviour
         dangerRing.name = "DangerRing";
         dangerRing.transform.SetParent(root.transform, false);
         dangerRing.transform.localPosition = new Vector3(0, 0.05f, 0);
-        dangerRing.transform.localScale = new Vector3(3.2f, 0.02f, 3.2f);
+        dangerRing.transform.localScale = new Vector3(4.5f, 0.02f, 4.5f);
         var ringCol = dangerRing.GetComponent<Collider>();
         if (ringCol != null) Destroy(ringCol);
 
@@ -284,21 +286,68 @@ public class LumberjackManager : MonoBehaviour
         SetMaterialTransparent(ringMat);
         ringRend.material = ringMat;
 
-        // 12. Indicador 3D Superior (Billboard com corações e contagem de cliques)
-        GameObject overheadGo = new GameObject("OverheadIndicator");
-        overheadGo.transform.SetParent(root.transform, false);
-        overheadGo.transform.localPosition = new Vector3(0, 2.95f, 0);
+        // 12. Indicador 3D Superior (Billboard elevado com Badge, Moldura e TMP)
+        GameObject billboardRoot = new GameObject("OverheadBillboard");
+        billboardRoot.transform.SetParent(root.transform, false);
+        billboardRoot.transform.localPosition = new Vector3(0, 5.0f, 0);
 
-        var tmp = overheadGo.AddComponent<TextMeshPro>();
+        // Moldura Brilhante de Perigo (Borda externa alaranjada/vermelha)
+        GameObject borderObj = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        borderObj.name = "BillboardBorder";
+        borderObj.transform.SetParent(billboardRoot.transform, false);
+        borderObj.transform.localPosition = new Vector3(0, 0, 0.02f);
+        borderObj.transform.localScale = new Vector3(4.4f, 1.9f, 1f);
+        var borderCol = borderObj.GetComponent<Collider>();
+        if (borderCol != null) Destroy(borderCol);
+        var borderRend = borderObj.GetComponent<Renderer>();
+        Material borderMat = new Material(unlitShader);
+        borderMat.color = new Color(1f, 0.22f, 0.1f, 0.95f);
+        borderRend.material = borderMat;
+
+        // Fundo do Badge (Preto translúcido de alto contraste)
+        GameObject bgObj = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        bgObj.name = "BillboardBackground";
+        bgObj.transform.SetParent(billboardRoot.transform, false);
+        bgObj.transform.localPosition = new Vector3(0, 0, 0.01f);
+        bgObj.transform.localScale = new Vector3(4.15f, 1.65f, 1f);
+        var bgCol = bgObj.GetComponent<Collider>();
+        if (bgCol == null) bgCol = bgObj.AddComponent<BoxCollider>();
+        var bgRend = bgObj.GetComponent<Renderer>();
+        Material bgMat = new Material(unlitShader);
+        bgMat.color = new Color(0.08f, 0.03f, 0.03f, 0.92f);
+        SetMaterialTransparent(bgMat);
+        bgRend.material = bgMat;
+
+        // Marcador / Ponteiro em formato de diamante apontando para a cabeça do lenhador
+        GameObject pointerObj = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        pointerObj.name = "BillboardPointer";
+        pointerObj.transform.SetParent(billboardRoot.transform, false);
+        pointerObj.transform.localPosition = new Vector3(0, -1.02f, 0.01f);
+        pointerObj.transform.localRotation = Quaternion.Euler(0, 0, 45f);
+        pointerObj.transform.localScale = new Vector3(0.48f, 0.48f, 1f);
+        var ptrCol = pointerObj.GetComponent<Collider>();
+        if (ptrCol != null) Destroy(ptrCol);
+        var ptrRend = pointerObj.GetComponent<Renderer>();
+        ptrRend.material = borderMat;
+
+        // Texto informativo em alta definição
+        GameObject textObj = new GameObject("BillboardText");
+        textObj.transform.SetParent(billboardRoot.transform, false);
+        textObj.transform.localPosition = new Vector3(0, 0, 0f);
+
+        var tmp = textObj.AddComponent<TextMeshPro>();
         tmp.font = TMP_Settings.defaultFontAsset;
         tmp.fontSize = 3.6f;
         tmp.alignment = TextAlignmentOptions.Center;
         tmp.color = Color.white;
-        tmp.text = "<b>! LENHADOR !</b>\n<size=90%><color=#FF4444>[ Vida: 3/3 ]</color></size>\n<size=75%><i>Toque para atacar!</i></size>";
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
+        tmp.text = "<b><color=#FF4444>[ ! ] LENHADOR</color></b>\n<size=85%><color=#00FF66>[ VIDA: 3/3 ]</color></size>\n<size=70%><color=#EEEEEE>Toque para atacar!</color></size>";
+        var rt = textObj.GetComponent<RectTransform>();
+        if (rt != null) rt.sizeDelta = new Vector2(4.2f, 1.8f);
 
         // Adiciona e configura o componente ativo
         var lj = root.AddComponent<LumberjackActive>();
-        lj.ConfigureReferences(model.transform, armPivot.transform, axe.transform, overheadGo.transform, tmp, beaconMat, ringMat);
+        lj.ConfigureReferences(model.transform, armPivot.transform, axe.transform, billboardRoot.transform, tmp, beaconMat, ringMat);
 
         return root;
     }
@@ -392,10 +441,11 @@ public class LumberjackActive : MonoBehaviour
     {
         if (isDefeated) return;
 
-        // 1. Billboard do indicador superior em direção à câmera
+        // 1. Billboard do indicador superior em direção à câmera com flutuação sutil
         if (Camera.main != null && overheadTransform != null)
         {
             overheadTransform.rotation = Camera.main.transform.rotation;
+            overheadTransform.localPosition = new Vector3(0f, 5.0f + Mathf.Sin(Time.time * 4f) * 0.15f, 0f);
         }
 
         // 2. Pulsação de alerta no anel e no beacon
@@ -527,15 +577,9 @@ public class LumberjackActive : MonoBehaviour
         if (overheadText == null) return;
 
         int remaining = hitsRequired - hitsReceived;
-        string bars = "";
-
-        for (int i = 0; i < hitsRequired; i++)
-        {
-            bars += (i < remaining) ? "<color=#FF3333>I</color> " : "<color=#666666>-</color> ";
-        }
-
-        overheadText.text = $"<b>! LENHADOR !</b>\n<size=95%>[ {bars.Trim()} ] <size=80%>(Vida: {remaining}/{hitsRequired})</size></size>\n<size=75%><i>Toque mais {remaining}x!</i></size>";
-        overheadText.color = remaining == 1 ? new Color(1f, 0.35f, 0.25f) : Color.white;
+        string lifeColor = remaining >= 3 ? "#00FF66" : (remaining == 2 ? "#FFD23F" : "#FF3333");
+        overheadText.text = $"<b><color=#FF4444>[ ! ] LENHADOR</color></b>\n<size=85%><color={lifeColor}>[ VIDA: {remaining}/{hitsRequired} ]</color></size>\n<size=70%><color=#EEEEEE>Toque para atacar!</color></size>";
+        overheadText.color = Color.white;
     }
 
     private IEnumerator FlashWhiteRoutine()

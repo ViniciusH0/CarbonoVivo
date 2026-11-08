@@ -9,10 +9,12 @@ public class WeatherManager : MonoBehaviour
     [SerializeField] private float minIntervalBetweenRain = 65f;
     [SerializeField] private float maxIntervalBetweenRain = 100f;
     [SerializeField] private float defaultRainDuration = 28f;
+    [SerializeField] private float totalRainWaterRecovery = 0.5f; // Recupera exatamente 5% de água no total (escala 0 a 10)
 
     public float MinIntervalBetweenRain { get => minIntervalBetweenRain; set => minIntervalBetweenRain = Mathf.Max(5f, value); }
     public float MaxIntervalBetweenRain { get => maxIntervalBetweenRain; set => maxIntervalBetweenRain = Mathf.Max(minIntervalBetweenRain + 1f, value); }
     public float DefaultRainDuration { get => defaultRainDuration; set => defaultRainDuration = Mathf.Max(3f, value); }
+    public float TotalRainWaterRecovery { get => totalRainWaterRecovery; set => totalRainWaterRecovery = Mathf.Max(0f, value); }
 
     public void SetRainInterval(float interval)
     {
@@ -25,6 +27,7 @@ public class WeatherManager : MonoBehaviour
     private float nextRainInterval;
     private float rainCooldownTimer = 0f;
     private float currentRainDurationTimer = 0f;
+    private float currentRainWaterRecovered = 0f;
 
     private ParticleSystem rainParticleSystem;
     private Camera mainCam;
@@ -81,6 +84,7 @@ public class WeatherManager : MonoBehaviour
 
         isRaining = true;
         currentRainDurationTimer = duration;
+        currentRainWaterRecovered = 0f;
 
         if (BioacousticAudioManager.Instance != null)
         {
@@ -90,7 +94,7 @@ public class WeatherManager : MonoBehaviour
         if (LumberjackManager.Instance != null)
         {
             LumberjackManager.Instance.ShowAlert(
-                "[CLIMA] Chuva tropical no bioma! Recuperando lencois freaticos e acelerando a fotossintese (+35%).",
+                "[CLIMA] Chuva tropical no bioma! Recuperando +5% de agua e acelerando a fotossintese (+35%).",
                 4.5f,
                 new Color(0.25f, 0.85f, 1f)
             );
@@ -192,11 +196,20 @@ public class WeatherManager : MonoBehaviour
     {
         if (rainIntensity <= 0.05f) return;
 
-        // Regeneração contínua da água da região durante a chuva
+        // Recupera no máximo 5% de água (0.5f na escala 0-10) distribuído suavemente ao longo da duração da chuva
         if (IndicatorManager.Instance != null)
         {
-            IndicatorManager.Instance.ModifyWater(Time.deltaTime * 0.085f * rainIntensity);
-            IndicatorManager.Instance.ModifyForestHealth(Time.deltaTime * 0.025f * rainIntensity);
+            float remaining = Mathf.Max(0f, totalRainWaterRecovery - currentRainWaterRecovered);
+            if (remaining > 0f)
+            {
+                float duration = Mathf.Max(5f, defaultRainDuration);
+                float step = (totalRainWaterRecovery / duration) * rainIntensity * Time.deltaTime;
+                step = Mathf.Min(remaining, step);
+                currentRainWaterRecovered += step;
+                IndicatorManager.Instance.AddContinuousWater(step);
+            }
+
+            IndicatorManager.Instance.AddContinuousForestHealth(Time.deltaTime * 0.025f * rainIntensity);
         }
     }
 }

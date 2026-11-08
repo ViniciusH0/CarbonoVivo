@@ -197,7 +197,7 @@ public class GameDebugManager : MonoBehaviour
         Config.timeOfDay = Mathf.Repeat(hour, 24f);
         if (DayNightCycle.Instance != null)
         {
-            DayNightCycle.Instance.SetTime(Config.timeOfDay);
+            DayNightCycle.Instance.SetTime(Config.timeOfDay, true);
         }
         Config.Save();
         OnConfigChanged?.Invoke();
@@ -222,7 +222,7 @@ public class GameDebugManager : MonoBehaviour
             DayNightCycle.Instance.PauseCycle = pause;
             if (pause)
             {
-                DayNightCycle.Instance.SetTime(Config.timeOfDay);
+                DayNightCycle.Instance.SetTime(Config.timeOfDay, true);
             }
         }
         Config.Save();

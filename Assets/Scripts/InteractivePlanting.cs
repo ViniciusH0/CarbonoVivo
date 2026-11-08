@@ -6,6 +6,7 @@ using UnityEngine.EventSystems;
 public class InteractivePlanting : MonoBehaviour
 {
     public static InteractivePlanting Instance { get; private set; }
+    public static event System.Action<GameObject> OnTreePlanted;
 
     [Header("Planting Cost")]
     [SerializeField] private float treeCost = 10f;
@@ -169,6 +170,8 @@ public class InteractivePlanting : MonoBehaviour
                 {
                     LumberjackManager.Instance.ShowAlert("Muda nativa plantada! A floresta se expande.", 2f, new Color(0.35f, 0.95f, 0.5f));
                 }
+
+                OnTreePlanted?.Invoke(newTree);
                 return true;
             }
         }
@@ -209,6 +212,8 @@ public class InteractivePlanting : MonoBehaviour
                 {
                     LumberjackManager.Instance.ShowAlert("Muda nativa plantada à sua frente!", 2f, new Color(0.35f, 0.95f, 0.5f));
                 }
+
+                OnTreePlanted?.Invoke(newTree);
             }
         }
         else
