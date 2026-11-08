@@ -93,6 +93,16 @@ namespace DTT.Utils.EditorUtilities
             labelStyle.richText = true;
         }
 
+#if UNITY_6000_5_OR_NEWER
+        /// <summary>
+        /// Converts a tree view item id (originally an instance id) to an EntityId
+        /// without using the obsolete int cast operator.
+        /// </summary>
+        /// <param name="id">The tree view item id.</param>
+        /// <returns>The corresponding entity id.</returns>
+        private static EntityId ToEntityId(int id) => EntityId.FromULong(unchecked((ulong)id));
+#endif
+
         /// <summary>
         /// Returns the unity object for a tree view item assuming the instance id has
         /// been used to set the id of the tree view item.
@@ -101,7 +111,7 @@ namespace DTT.Utils.EditorUtilities
         /// <returns>The unity object for the tree view item</returns>
         public static Object ToUnityObject(this TreeViewItem treeViewItem)
 #if UNITY_6000_5_OR_NEWER
-            => EditorUtility.EntityIdToObject((EntityId)treeViewItem.id);
+            => EditorUtility.EntityIdToObject(ToEntityId(treeViewItem.id));
 #else
             => EditorUtility.InstanceIDToObject(treeViewItem.id);
 #endif
@@ -115,7 +125,7 @@ namespace DTT.Utils.EditorUtilities
         /// <returns>The unity object for the tree view item</returns>
         public static T ToUnityObject<T>(this TreeViewItem treeViewItem) where T : Object
 #if UNITY_6000_5_OR_NEWER
-            => (T)EditorUtility.EntityIdToObject((EntityId)treeViewItem.id);
+            => (T)EditorUtility.EntityIdToObject(ToEntityId(treeViewItem.id));
 #else
             => (T)EditorUtility.InstanceIDToObject(treeViewItem.id);
 #endif
