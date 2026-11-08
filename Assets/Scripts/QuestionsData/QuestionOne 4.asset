@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 4
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Uma empresa oferece comprar madeira das \xE1rvores mais antigas."
-  yesForestHealth: -3
+  questionText: "O turismo nas cachoeiras traz renda aos guias locais, mas visitantes deixam lixo e pisoteiam mudas novas. Fechar o acesso ao p\xFAblico?"
+  yesForestHealth: 2.4
   yesWater: 2
-  yesCommunity: -2
-  yesResources: 3
-  noForestHealth: -0.5
-  noWater: 0
-  noCommunity: 3
-  noResources: 0
+  yesCommunity: -3
+  yesResources: -1.5
+  noForestHealth: -2.5
+  noWater: -2
+  noCommunity: 2.5
+  noResources: 1.8

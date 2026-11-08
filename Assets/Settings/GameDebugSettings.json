@@ -10,7 +10,7 @@
     "dayCycleDuration": 240.0,
     "pauseDayCycle": false,
     "sunIntensityMultiplier": 1.0,
-    "fogDensityMultiplier": 1.0,
+    "fogDensityMultiplier": 1.1603569984436035,
     "rainInterval": 80.0,
     "rainDuration": 28.0
 }

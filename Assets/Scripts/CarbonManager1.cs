@@ -14,11 +14,11 @@ public class CarbonManager1 : MonoBehaviour
 
     [Header("Carbon Settings")]
     [SerializeField] private float maxCarbon = 1000f;
-    [SerializeField] private float baseGenerationPower = 0.5f;
-    [SerializeField] private float generationPower = 0.5f; 
+    [SerializeField] private float baseGenerationPower = 0.14f;
+    [SerializeField] private float generationPower = 0.14f; 
 
     [Header("Current Status")]
-    [SerializeField] private float currentCarbon = 60f; // Começa com 60 ppm para permitir plantio e experimentação imediata
+    [SerializeField] private float currentCarbon = 25f; // Começa com 25 ppm (suficiente para plantar as 2 primeiras mudas do tutorial)
     private float currentGenerationRate = 0f;
 
     public float CurrentCarbon => currentCarbon;
@@ -182,17 +182,45 @@ public class CarbonManager1 : MonoBehaviour
             bioMultiplier = BiodiversityManager.Instance.GetCarbonSequestrationMultiplier();
         }
 
-        // Fator ecológico de saúde hídrica (a água da região acelera a capacidade fotossintética)
+        // Fator ecológico de saúde hídrica (seca severa < 3.0 derruba a capacidade fotossintética pela metade)
         float waterFactor = 1.0f;
         if (IndicatorManager.Instance != null)
         {
-            waterFactor = 0.5f + 0.5f * (IndicatorManager.Instance.water / 10f);
+            float w = IndicatorManager.Instance.water;
+            if (w < 3.0f)
+            {
+                waterFactor = 0.35f + 0.15f * Mathf.Clamp01(w / 3.0f); // 35% a 50% em seca extrema
+            }
+            else
+            {
+                waterFactor = 0.65f + 0.35f * Mathf.Clamp01((w - 3.0f) / 7.0f); // 65% a 100%
+                if (w >= 8.0f) waterFactor *= 1.2f; // Bônus de abundância hídrica
+            }
+        }
+
+        // Fator de saúde da floresta (árvores doentes ou degradadas sequestram menos)
+        float healthFactor = 1.0f;
+        if (IndicatorManager.Instance != null)
+        {
+            float h = IndicatorManager.Instance.forestHealth;
+            if (h < 3.0f)
+            {
+                healthFactor = 0.5f + 0.5f * Mathf.Clamp01(h / 3.0f);
+            }
         }
 
         // Bônus climático: chuva tropical acelera fotossíntese e sequestro de carbono em +35%
         float weatherFactor = (WeatherManager.Instance != null && WeatherManager.Instance.IsRaining) ? 1.35f : 1.0f;
 
-        currentGenerationRate = treeCount * generationPower * bioMultiplier * waterFactor * weatherFactor;
+        // Penalidade por focos de incêndio ativos (combustão lança fumaça e consome carbono)
+        float firePenalty = 0f;
+        if (ForestFireManager.Instance != null && ForestFireManager.Instance.IsFireActive)
+        {
+            int burning = ForestFireManager.Instance.ActiveFireCount;
+            firePenalty = burning * 0.30f;
+        }
+
+        currentGenerationRate = Mathf.Max(0f, (treeCount * generationPower * bioMultiplier * waterFactor * healthFactor * weatherFactor) - firePenalty);
         float delta = currentGenerationRate * Time.deltaTime;
         AddCarbon(delta);
 

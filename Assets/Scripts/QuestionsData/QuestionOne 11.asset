@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 11
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Um gerador antigo est\xE1 poluindo o ar da regi\xE3o. Substituir?"
-  yesForestHealth: 1.5
-  yesWater: 0
-  yesCommunity: 0
-  yesResources: -1
-  noForestHealth: -0.5
-  noWater: 0
-  noCommunity: -0.5
-  noResources: 1
+  questionText: "Uma f\xE1brica de papel quer plantar eucalipto na borda da reserva, gerando empregos mas secando o solo. Apoiar o empreendimento?"
+  yesForestHealth: -2
+  yesWater: -2.8
+  yesCommunity: 2
+  yesResources: 2.4
+  noForestHealth: 1.5
+  noWater: 1.8
+  noCommunity: -1.8
+  noResources: -1

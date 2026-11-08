@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
+  m_Name: QuestionOne 29
+  m_EditorClassIdentifier: Assembly-CSharp::QuestionData
+  questionText: "Um lix\xE3o clandestino na fronteira da mata est\xE1 contaminando o len\xE7ol fre\xE1tico. Interditar o lix\xE3o for\xE7ando a cidade a pagar aterro controlado?"
+  yesForestHealth: 2
+  yesWater: 3
+  yesCommunity: -2.5
+  yesResources: -2
+  noForestHealth: -2.5
+  noWater: -3.5
+  noCommunity: 1.5
+  noResources: 1

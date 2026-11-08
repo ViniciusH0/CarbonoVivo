@@ -12,13 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 10
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Moradores querem criar um programa de educa\xE7\xE3o ambiental.
-    Financiar?"
-  yesForestHealth: 1
-  yesWater: 0
-  yesCommunity: 1
-  yesResources: -0.5
-  noForestHealth: -0.5
-  noWater: 0
-  noCommunity: -0.5
-  noResources: 1
+  questionText: "Uma linha de transmiss\xE3o el\xE9trica precisa abrir uma clareira na mata fechada para levar energia \xE0 cidade vizinha. Conceder a licen\xE7a ambiental?"
+  yesForestHealth: -2.6
+  yesWater: -1
+  yesCommunity: 2.2
+  yesResources: 2.2
+  noForestHealth: 2
+  noWater: 1
+  noCommunity: -2.4
+  noResources: -1.5

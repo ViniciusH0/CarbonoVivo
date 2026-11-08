@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 17
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Corredores Ecol\xF3gicos: Propriet\xE1rios rurais vizinhos aceitam interligar seus fragmentos de mata \xE0 reserva principal. Estabelecer o corredor?"
-  yesForestHealth: 2.2
-  yesWater: 1.2
-  yesCommunity: 1
-  yesResources: -1.2
+  questionText: "Cientistas pedem autoriza\xE7\xE3o para capturar matrizes de aves raras na reserva para criar um banco gen\xE9tico em cativeiro contra o tr\xE1fico. Autorizar?"
+  yesForestHealth: 1.8
+  yesWater: 0
+  yesCommunity: -1
+  yesResources: -2.2
   noForestHealth: -1.5
-  noWater: -0.8
-  noCommunity: -0.5
-  noResources: 0.5
+  noWater: 0
+  noCommunity: 1
+  noResources: 1

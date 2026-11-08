@@ -41,7 +41,11 @@ public sealed class GameSceneTestUITheme : MonoBehaviour
         area.raycastTarget = true; area.raycastPadding = Vector4.zero;
         area.alphaHitTestMinimumThreshold = 0;
         var artwork = button.transform.Find("OrganicSurface");
-        if (artwork != null) artwork.GetComponent<Image>().raycastTarget = false;
+        if (artwork != null)
+        {
+            var graphic = artwork.GetComponent<Graphic>();
+            if (graphic != null) graphic.raycastTarget = false;
+        }
     }
 
     private void CacheButtonHitAreas()
@@ -85,8 +89,10 @@ public sealed class GameSceneTestUITheme : MonoBehaviour
         var panel = transform.Find("Game/BiodiversityPanel");
         if (panel != null)
         {
-            StyleCatalog(panel, font);
-            CacheButtonHitAreas();
+            if (StyleCatalog(panel, font))
+            {
+                CacheButtonHitAreas();
+            }
         }
     }
 
@@ -167,52 +173,97 @@ public sealed class GameSceneTestUITheme : MonoBehaviour
         return tmp;
     }
 
-    public static void StyleCatalog(Transform panel, TMP_FontAsset font)
+    public static bool StyleCatalog(Transform panel, TMP_FontAsset font)
     {
         var content = panel.Find("ScrollView/Viewport/Content");
-        if (content == null) return;
+        if (content == null) return false;
         var list = content.GetComponent<VerticalLayoutGroup>();
-        list.spacing = 14; list.padding = new RectOffset(4, 4, 4, 12);
-        list.childControlHeight = true;
-        list.childForceExpandHeight = false;
+        if (list != null)
+        {
+            list.spacing = 14; list.padding = new RectOffset(4, 4, 4, 12);
+            list.childControlHeight = true;
+            list.childForceExpandHeight = false;
+        }
+
+        bool hasFresh = false;
         foreach (Transform card in content)
         {
             if (!card.name.StartsWith("Card_")) continue;
             bool fresh = card.Find("OrganicSurface") == null;
+            if (!fresh) continue;
+
             var button = card.Find("ActionBtn")?.GetComponent<Button>();
             if (button == null) continue;
+            hasFresh = true;
+
             bool active = !button.interactable;
             Surface(card, active ? Hex("DDE9D7") : Cream, 18);
             Surface(button.transform, active ? Muted : Green, 16);
-            if (fresh)
+
+            var le = card.GetComponent<LayoutElement>();
+            if (le != null) { le.preferredHeight = 204; le.minHeight = 204; }
+            var row = card.GetComponent<HorizontalLayoutGroup>();
+            if (row != null)
             {
-                var le = card.GetComponent<LayoutElement>(); le.preferredHeight = 204; le.minHeight = 204;
-                var row = card.GetComponent<HorizontalLayoutGroup>();
                 row.padding = new RectOffset(22, 22, 20, 20); row.spacing = 22;
                 row.childControlWidth = true; row.childControlHeight = true;
                 row.childForceExpandWidth = false; row.childForceExpandHeight = false;
-                var info = card.Find("Info");
-                var infoLe = info.GetComponent<LayoutElement>(); infoLe.preferredHeight = 164;
-                var col = info.GetComponent<VerticalLayoutGroup>(); col.spacing = 8;
-                col.childControlHeight = true; col.childForceExpandHeight = false;
+            }
+            var info = card.Find("Info");
+            if (info != null)
+            {
+                var infoLe = info.GetComponent<LayoutElement>();
+                if (infoLe != null) infoLe.preferredHeight = 164;
+                var col = info.GetComponent<VerticalLayoutGroup>();
+                if (col != null)
+                {
+                    col.spacing = 8;
+                    col.childControlHeight = true;
+                    col.childForceExpandHeight = false;
+                }
                 var texts = info.GetComponentsInChildren<TMP_Text>();
                 for (int i = 0; i < texts.Length; i++)
                 {
-                    var txt = texts[i]; txt.font = font; txt.fontSize = i == 0 ? 21 : 16;
+                    var txt = texts[i];
+                    if (txt == null) continue;
+                    txt.font = font;
+                    txt.fontSize = i == 0 ? 21 : 16;
                     txt.color = i == 2 ? Muted : Forest;
-                    txt.enableAutoSizing = true; txt.fontSizeMin = i == 0 ? 18 : 14;
+                    txt.enableAutoSizing = true;
+                    txt.fontSizeMin = i == 0 ? 18 : 14;
                     txt.fontSizeMax = i == 0 ? 21 : 16;
                     txt.alignment = TextAlignmentOptions.MidlineLeft;
                     var tl = txt.GetComponent<LayoutElement>();
                     if (tl == null) tl = txt.gameObject.AddComponent<LayoutElement>();
-                    tl.preferredHeight = i == 0 ? 52 : 48; tl.flexibleHeight = 0;
+                    tl.preferredHeight = i == 0 ? 52 : 48;
+                    tl.flexibleHeight = 0;
                 }
-                var btnLe = button.GetComponent<LayoutElement>();
-                btnLe.minWidth = 148; btnLe.preferredWidth = 148; btnLe.preferredHeight = 70;
-                var bt = button.GetComponentInChildren<TMP_Text>(); bt.font = font; bt.fontSize = 18;
             }
-            var label = button.GetComponentInChildren<TMP_Text>();
-            label.color = Cream;
+            var btnLe = button.GetComponent<LayoutElement>();
+            if (btnLe != null)
+            {
+                btnLe.minWidth = 148;
+                btnLe.preferredWidth = 148;
+                btnLe.preferredHeight = 70;
+            }
+            var bt = button.GetComponentInChildren<TMP_Text>();
+            if (bt != null)
+            {
+                bt.font = font;
+                bt.fontSize = 18;
+                bt.color = Cream;
+            }
         }
+
+        if (hasFresh)
+        {
+            var ui = panel.GetComponent<BiodiversityUI>();
+            if (ui != null)
+            {
+                ui.UpdateExistingCardStates();
+            }
+        }
+
+        return hasFresh;
     }
 }

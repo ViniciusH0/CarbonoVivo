@@ -12,13 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 12
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "A comunidade pede acesso a uma \xE1rea protegida para coleta de
-    alimentos."
-  yesForestHealth: -1
-  yesWater: 1
+  questionText: "Fazendeiros aceitam reflorestar \xE1reas para criar corredores ecol\xF3gicos, mas exigem apoio t\xE9cnico e maquin\xE1rio da base. Firmar o acordo?"
+  yesForestHealth: 2.8
+  yesWater: 1.5
   yesCommunity: 1
-  yesResources: 1
-  noForestHealth: 0.5
-  noWater: 0
+  yesResources: -2.6
+  noForestHealth: -1.8
+  noWater: -1
   noCommunity: -1
-  noResources: 0
+  noResources: 1.2

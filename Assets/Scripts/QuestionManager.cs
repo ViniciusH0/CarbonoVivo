@@ -292,6 +292,9 @@ public class QuestionManager : MonoBehaviour
 
         if (questionText != null) questionText.text = currentQuestion.questionText;
 
+        var contextLbl = questionCanvas != null ? questionCanvas.transform.Find("ContextLabel")?.GetComponent<TMPro.TMP_Text>() : null;
+        if (contextLbl != null) contextLbl.text = "DILEMA CLIMÁTICO";
+
         SetQuestionUIFocusMode(true);
         
         if (questionCanvas != null)

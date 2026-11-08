@@ -92,13 +92,22 @@ public class IndicatorManager : MonoBehaviour
             bonusRetention = BiodiversityManager.Instance.GetWaterRetentionBonus();
         }
 
-        // Negligência severa com a mata ciliar (< 2.0) reduz a água suavemente, mas com piso de segurança
-        if (forestHealth < 2.0f)
+        // Pressão climática progressiva: conforme o jogo avança e o carbono é capturado, a evaporação térmica aumenta
+        float carbonRatio = 0f;
+        if (CarbonManager1.Instance != null && CarbonManager1.Instance.MaxCarbon > 0f)
         {
-            float decay = (waterDecayRate * decayMultiplier * (1f - bonusRetention)) * Time.deltaTime;
-            water = Mathf.Clamp(water - decay, 1.5f, 10f);
+            carbonRatio = Mathf.Clamp01(CarbonManager1.Instance.CurrentCarbon / CarbonManager1.Instance.MaxCarbon);
         }
-        else if (forestHealth >= 3.0f)
+        float climateHeatFactor = 1.0f + 0.65f * carbonRatio;
+
+        // Se a mata ciliar estiver desprotegida (< 3.2), a evaporação drena a água da bacia
+        if (forestHealth < 3.2f)
+        {
+            float severity = (3.2f - forestHealth) / 3.2f;
+            float decay = (waterDecayRate * decayMultiplier * climateHeatFactor * severity * (1f - bonusRetention)) * Time.deltaTime;
+            water = Mathf.Clamp(water - decay, 0.4f, 10f);
+        }
+        else if (forestHealth >= 3.8f)
         {
             // Mata ciliar saudável recupera os aquíferos e reservatórios
             float regen = (waterRegenRate * (1f + bonusRetention) * (forestHealth / 10f)) * Time.deltaTime;

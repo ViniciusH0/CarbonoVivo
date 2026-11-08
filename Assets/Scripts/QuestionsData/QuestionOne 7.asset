@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 7
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Cientistas sugerem criar uma \xE1rea protegida sem acesso humano."
-  yesForestHealth: 2
-  yesWater: 0
-  yesCommunity: -0.5
-  yesResources: -1
-  noForestHealth: 0
-  noWater: 0
-  noCommunity: 1
-  noResources: 0
+  questionText: "Na estiagem, a irriga\xE7\xE3o das lavouras est\xE1 secando o rio da floresta. Fechar as comportas agr\xEDcolas para salvar a fauna e a mata?"
+  yesForestHealth: 2.2
+  yesWater: 2
+  yesCommunity: -3.2
+  yesResources: 0
+  noForestHealth: -2.8
+  noWater: -2.5
+  noCommunity: 2.2
+  noResources: 0.5

@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 16
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Mutir\xE3o de Restaura\xE7\xE3o de Nascentes: Ribeirinhos pedem apoio para recuperar a mata ciliar do rio com mudas nativas da Mata Atl\xE2ntica. Mobilizar mutir\xE3o?"
-  yesForestHealth: 1.5
-  yesWater: 2
-  yesCommunity: 1.2
-  yesResources: -1
-  noForestHealth: -1
-  noWater: -1.8
-  noCommunity: -0.8
-  noResources: 0.5
+  questionText: "Apreendemos um caminh\xE3o de ip\xEA e peroba nobres retirados ilegalmente da mata. Doar toda a madeira para construir moradias comunit\xE1rias?"
+  yesForestHealth: 0
+  yesWater: 0
+  yesCommunity: 3
+  yesResources: -2
+  noForestHealth: 0
+  noWater: 0
+  noCommunity: -2
+  noResources: 2.5

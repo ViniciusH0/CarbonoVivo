@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 19
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Cria\xE7\xE3o de RPPN: Uma fam\xEDlia tradicional quer transformar sua fazenda em Reserva Particular do Patrim\xF4nio Natural com ecoturismo sustent\xE1vel. Certificar?"
-  yesForestHealth: 1.6
-  yesWater: 1
-  yesCommunity: 1.8
-  yesResources: -0.5
-  noForestHealth: -1
-  noWater: -0.6
-  noCommunity: -1.2
-  noResources: 0.5
+  questionText: "Uma empresa de \xE1gua mineral quer engarrafar a \xE1gua da nascente principal pagando royalties para a nossa reserva. Conceder o direito?"
+  yesForestHealth: -1
+  yesWater: -3
+  yesCommunity: -1.5
+  yesResources: 3.4
+  noForestHealth: 1.2
+  noWater: 2.5
+  noCommunity: 1
+  noResources: -1.8

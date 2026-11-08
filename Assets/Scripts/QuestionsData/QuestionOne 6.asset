@@ -12,13 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 6
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Um grupo quer ca\xE7ar animais para complementar a alimenta\xE7\xE3o
-    local. Permitir?"
-  yesForestHealth: -1
-  yesWater: 1
-  yesCommunity: -0.5
-  yesResources: 2
-  noForestHealth: 1
-  noWater: 0
-  noCommunity: 0.5
-  noResources: 0
+  questionText: "Pequenos agricultores prop\xF5em plantar caf\xE9 e cacau sombreados sob \xE1rvores nativas em vez de desmatar. Financiar as mudas e assist\xEAncia t\xE9cnica?"
+  yesForestHealth: 1.5
+  yesWater: 1.2
+  yesCommunity: 2.6
+  yesResources: -2.2
+  noForestHealth: -2
+  noWater: -1
+  noCommunity: -2
+  noResources: 1

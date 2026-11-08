@@ -12,13 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 14
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Nossos cientistas desenvolveram uma \xE1rvore geneticamente modificada
-    que cresce tr\xEAs vezes mais r\xE1pido. Devemos plant\xE1-la?"
-  yesForestHealth: 3
-  yesWater: -3
-  yesCommunity: 1
-  yesResources: -2
-  noForestHealth: 0
-  noWater: 0
-  noCommunity: 1
-  noResources: 2
+  questionText: "A constru\xE7\xE3o civil da regi\xE3o quer dragar areia do rio da floresta para baratear moradias populares. Vetar a extra\xE7\xE3o de areia?"
+  yesForestHealth: 1.5
+  yesWater: 2.8
+  yesCommunity: -2.5
+  yesResources: -1
+  noForestHealth: -2
+  noWater: -3.5
+  noCommunity: 2.5
+  noResources: 1.8

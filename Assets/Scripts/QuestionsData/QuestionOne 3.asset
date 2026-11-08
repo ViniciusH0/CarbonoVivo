@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 3
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Um pesquisador prop\xF5e instalar sensores ambientais pela floresta."
-  yesForestHealth: 1
-  yesWater: 0
-  yesCommunity: 0
-  yesResources: -0.5
-  noForestHealth: 0
-  noWater: 0
-  noCommunity: 0
-  noResources: 0
+  questionText: "Pecuaristas vizinhos querem usar as margens do rio para o gado beber \xE1gua, assoreando a nascente. Cercar a margem e proibir o acesso?"
+  yesForestHealth: 1.8
+  yesWater: 2.6
+  yesCommunity: -2.2
+  yesResources: -1
+  noForestHealth: -2.2
+  noWater: -3
+  noCommunity: 1.8
+  noResources: 0.5

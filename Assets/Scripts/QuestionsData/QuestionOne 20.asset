@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
+  m_Name: QuestionOne 20
+  m_EditorClassIdentifier: Assembly-CSharp::QuestionData
+  questionText: "Comunidades tradicionais pedem exclusividade para colher sementes, castanhas e cip\xF3s na reserva, proibindo outros coletores. Conceder a exclusividade?"
+  yesForestHealth: 1.6
+  yesWater: 0.8
+  yesCommunity: 1.8
+  yesResources: -1.8
+  noForestHealth: -1.5
+  noWater: -0.8
+  noCommunity: -2.2
+  noResources: 1

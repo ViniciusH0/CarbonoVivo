@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 9
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Brigada Comunit\xE1ria contra o Fogo: Moradores da borda da mata pedem equipamentos para combater queimadas clandestinas. Apoiar a brigada?"
-  yesForestHealth: 1.8
-  yesWater: 0.8
-  yesCommunity: 1.2
-  yesResources: -1
-  noForestHealth: -2
-  noWater: -1
-  noCommunity: -1.2
-  noResources: 0.5
+  questionText: "Fam\xEDlias de posseiros ocuparam uma \xE1rea de preserva\xE7\xE3o permanente h\xE1 d\xE9cadas. Entrar na justi\xE7a para despejo imediato?"
+  yesForestHealth: 2.4
+  yesWater: 1.5
+  yesCommunity: -3.5
+  yesResources: -2
+  noForestHealth: -2.8
+  noWater: -2
+  noCommunity: 2.2
+  noResources: 0.8

@@ -12,8 +12,28 @@ public class InteractivePlanting : MonoBehaviour
     [SerializeField] private float treeCost = 10f;
     public float TreeCost
     {
-        get => treeCost;
+        get => GetCurrentCost();
         set => treeCost = Mathf.Max(0f, value);
+    }
+
+    public float GetCurrentCost()
+    {
+        int count = TreeSpawner.Instance != null ? TreeSpawner.Instance.GetTreeCount() : 0;
+        // As primeiras 3 mudas custam 10 ppm (fácil inicialização). 
+        // Depois o custo sobe suavemente +2 ppm a cada 3 árvores até o teto de 22 ppm.
+        return 10f + Mathf.Min(12f, Mathf.Floor(count / 3f) * 2f);
+    }
+
+    public void UpdateButtonUI()
+    {
+        if (hudPlantButton != null)
+        {
+            var txt = hudPlantButton.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+            if (txt != null)
+            {
+                txt.text = $"<b>Plantar Muda</b> ({GetCurrentCost():0} ppm)";
+            }
+        }
     }
     private float lastPlantTime = -1f;
 
@@ -171,9 +191,11 @@ public class InteractivePlanting : MonoBehaviour
             return false;
         }
 
-        if (CarbonManager1.Instance != null && CarbonManager1.Instance.CurrentCarbon >= treeCost)
+        float cost = GetCurrentCost();
+        if (CarbonManager1.Instance != null && CarbonManager1.Instance.CurrentCarbon >= cost)
         {
-            CarbonManager1.Instance.SpendCarbon(treeCost);
+            CarbonManager1.Instance.SpendCarbon(cost);
+            UpdateButtonUI();
 
             var im = UnityEngine.Object.FindAnyObjectByType<IndicatorManager>();
             if (im != null) im.ModifyForestHealth(0.25f);
@@ -190,6 +212,7 @@ public class InteractivePlanting : MonoBehaviour
                     if (plantedTree != null)
                     {
                         OnTreePlanted?.Invoke(plantedTree);
+                        UpdateButtonUI();
                     }
                 });
                 return true;
@@ -210,6 +233,7 @@ public class InteractivePlanting : MonoBehaviour
                     }
 
                     OnTreePlanted?.Invoke(newTree);
+                    UpdateButtonUI();
                     return true;
                 }
             }
@@ -218,7 +242,7 @@ public class InteractivePlanting : MonoBehaviour
         {
             if (LumberjackManager.Instance != null)
             {
-                LumberjackManager.Instance.ShowAlert($"CO2 insuficiente ({treeCost} ppm necessários para plantar)", 2f, new Color(1f, 0.8f, 0.3f));
+                LumberjackManager.Instance.ShowAlert($"CO2 insuficiente ({cost:0} ppm necessários para plantar)", 2f, new Color(1f, 0.8f, 0.3f));
             }
         }
 
@@ -233,13 +257,15 @@ public class InteractivePlanting : MonoBehaviour
 
         if (TreeSpawner.Instance == null) return;
 
-        if (CarbonManager1.Instance != null && CarbonManager1.Instance.CurrentCarbon >= treeCost)
+        float cost = GetCurrentCost();
+        if (CarbonManager1.Instance != null && CarbonManager1.Instance.CurrentCarbon >= cost)
         {
             Vector3 targetPos;
             if (!TreeSpawner.Instance.TryFindValidSpawnPosition(true, out targetPos))
                 return;
 
-            CarbonManager1.Instance.SpendCarbon(treeCost);
+            CarbonManager1.Instance.SpendCarbon(cost);
+            UpdateButtonUI();
 
             var im = UnityEngine.Object.FindAnyObjectByType<IndicatorManager>();
             if (im != null) im.ModifyForestHealth(0.25f);
@@ -256,6 +282,7 @@ public class InteractivePlanting : MonoBehaviour
                     if (plantedTree != null)
                     {
                         OnTreePlanted?.Invoke(plantedTree);
+                        UpdateButtonUI();
                     }
                 });
             }
@@ -275,6 +302,7 @@ public class InteractivePlanting : MonoBehaviour
                     }
 
                     OnTreePlanted?.Invoke(newTree);
+                    UpdateButtonUI();
                 }
             }
         }
@@ -282,7 +310,7 @@ public class InteractivePlanting : MonoBehaviour
         {
             if (LumberjackManager.Instance != null)
             {
-                LumberjackManager.Instance.ShowAlert($"CO2 insuficiente ({treeCost} ppm necessários)", 2f, new Color(1f, 0.8f, 0.3f));
+                LumberjackManager.Instance.ShowAlert($"CO2 insuficiente ({cost:0} ppm necessários)", 2f, new Color(1f, 0.8f, 0.3f));
             }
         }
     }

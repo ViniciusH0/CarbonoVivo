@@ -143,6 +143,13 @@ public class BiodiversityUI : MonoBehaviour
         return BiodiversityManager.Instance != null ? BiodiversityManager.Instance : Object.FindAnyObjectByType<BiodiversityManager>();
     }
 
+    private float GetCurrentCarbon()
+    {
+        if (CarbonManager1.Instance != null) return CarbonManager1.Instance.CurrentCarbon;
+        var cm = Object.FindAnyObjectByType<CarbonManager1>();
+        return cm != null ? cm.CurrentCarbon : 0f;
+    }
+
     public void ToggleCatalog()
     {
         // Proteção contra múltiplos disparos no mesmo frame (ex: persistent + runtime listener)
@@ -220,7 +227,7 @@ public class BiodiversityUI : MonoBehaviour
         }
         cardEntries.Clear();
 
-        float currentCo2 = CarbonManager1.Instance != null ? CarbonManager1.Instance.CurrentCarbon : 0f;
+        float currentCo2 = GetCurrentCarbon();
 
         foreach (var species in catalog)
         {
@@ -302,7 +309,7 @@ public class BiodiversityUI : MonoBehaviour
 
             if (!entry.species.isUnlocked)
             {
-                float co2 = CarbonManager1.Instance != null ? CarbonManager1.Instance.CurrentCarbon : 0f;
+                float co2 = GetCurrentCarbon();
                 if (co2 >= entry.species.costInPpm)
                 {
                     if (bioMgr.TryUnlock(entry.species.id))
@@ -328,9 +335,20 @@ public class BiodiversityUI : MonoBehaviour
         return entry;
     }
 
-    private void UpdateExistingCardStates()
+    public void UpdateExistingCardStates()
     {
-        float currentCo2 = CarbonManager1.Instance != null ? CarbonManager1.Instance.CurrentCarbon : 0f;
+        var bioMgr = GetBiodiversityManager();
+        if (bioMgr == null) return;
+        var catalog = bioMgr.speciesCatalog;
+        if (catalog == null || catalog.Count == 0) return;
+
+        if (cardEntries.Count != catalog.Count)
+        {
+            BuildOrRefreshCards();
+            return;
+        }
+
+        float currentCo2 = GetCurrentCarbon();
         foreach (var entry in cardEntries)
         {
             if (entry != null && entry.rootGo != null)
@@ -342,13 +360,21 @@ public class BiodiversityUI : MonoBehaviour
 
     private void ApplyCardState(CardItemEntry entry, float currentCo2)
     {
+        var organicCard = entry.rootGo != null ? entry.rootGo.transform.Find("OrganicSurface")?.GetComponent<DTT.UI.ProceduralUI.RoundedImage>() : null;
+        var organicBtn = entry.actionButton != null ? entry.actionButton.transform.Find("OrganicSurface")?.GetComponent<DTT.UI.ProceduralUI.RoundedImage>() : null;
+
+        Color textColor = organicBtn != null ? GameSceneTestUITheme.Cream : Color.white;
+
         if (entry.species.isUnlocked)
         {
             entry.bgImage.color = new Color(0.12f, 0.28f, 0.16f, 0.95f);
             entry.actionButtonImage.color = new Color(0.2f, 0.55f, 0.3f);
             entry.actionButton.interactable = false;
             entry.actionButtonText.text = "<b>Ativo</b>\n<size=80%>(Lv 1)</size>";
-            entry.actionButtonText.color = Color.white;
+            entry.actionButtonText.color = textColor;
+
+            if (organicCard != null) organicCard.color = GameSceneTestUITheme.Hex("DDE9D7");
+            if (organicBtn != null) organicBtn.color = GameSceneTestUITheme.Muted;
         }
         else if (currentCo2 >= entry.species.costInPpm)
         {
@@ -356,7 +382,10 @@ public class BiodiversityUI : MonoBehaviour
             entry.actionButtonImage.color = new Color(0.18f, 0.55f, 0.85f);
             entry.actionButton.interactable = true;
             entry.actionButtonText.text = $"<b>Despertar</b>\n<size=85%>({entry.species.costInPpm} ppm)</size>";
-            entry.actionButtonText.color = Color.white;
+            entry.actionButtonText.color = textColor;
+
+            if (organicCard != null) organicCard.color = GameSceneTestUITheme.Cream;
+            if (organicBtn != null) organicBtn.color = GameSceneTestUITheme.Green;
         }
         else
         {
@@ -364,7 +393,10 @@ public class BiodiversityUI : MonoBehaviour
             entry.actionButtonImage.color = new Color(0.28f, 0.32f, 0.38f);
             entry.actionButton.interactable = true;
             entry.actionButtonText.text = $"<b>{entry.species.costInPpm} ppm</b>\n<size=80%>(Falta CO2)</size>";
-            entry.actionButtonText.color = new Color(0.95f, 0.8f, 0.8f);
+            entry.actionButtonText.color = textColor;
+
+            if (organicCard != null) organicCard.color = GameSceneTestUITheme.Cream;
+            if (organicBtn != null) organicBtn.color = new Color(0.36f, 0.44f, 0.39f, 1f);
         }
     }
 

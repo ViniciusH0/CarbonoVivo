@@ -219,12 +219,7 @@ public class StepController : MonoBehaviour
         reloadPath = gameObject.scene.path;
         playAfterReload = begin;
         Time.timeScale = 1;
-#if UNITY_EDITOR
-        UnityEditor.SceneManagement.EditorSceneManager.LoadSceneInPlayMode(reloadPath,
-            new LoadSceneParameters(LoadSceneMode.Single));
-#else
-        SceneManager.LoadScene(reloadPath);
-#endif
+        SceneManager.LoadScene(gameObject.scene.name);
     }
 
     private void OnDestroy()

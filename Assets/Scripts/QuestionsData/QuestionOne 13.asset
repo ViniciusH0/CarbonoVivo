@@ -12,13 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 13
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Um drone detectou uma grande \xE1rea ideal para reflorestamento.
-    Investir no projeto?"
-  yesForestHealth: 1
-  yesWater: 0
-  yesCommunity: 1
-  yesResources: -1
-  noForestHealth: 0
+  questionText: "Esp\xE9cies invasoras de capim e animais ferais est\xE3o impedindo brotos nativos de crescer. Fazer a remo\xE7\xE3o dr\xE1stica com manejo qu\xEDmico e armadilhas?"
+  yesForestHealth: 2.5
+  yesWater: -1.2
+  yesCommunity: -1
+  yesResources: -2.2
+  noForestHealth: -3.2
   noWater: 0
-  noCommunity: -1
-  noResources: 0
+  noCommunity: 0
+  noResources: 1

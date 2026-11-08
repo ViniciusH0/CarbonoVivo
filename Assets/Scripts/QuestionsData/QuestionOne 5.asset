@@ -12,13 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 5
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Um inc\xEAndio come\xE7ou em uma regi\xE3o distante da floresta.
-    Enviar equipes?"
-  yesForestHealth: -0.2
-  yesWater: 0
-  yesCommunity: 2
-  yesResources: -1
-  noForestHealth: -2
-  noWater: 0
-  noCommunity: -1
-  noResources: 1
+  questionText: "Pol\xEDticos locais amea\xE7am cortar verbas da reserva se continuarmos embargando desmatamentos ilegais de grandes fazendas. Recuar na fiscaliza\xE7\xE3o?"
+  yesForestHealth: -3.2
+  yesWater: -2
+  yesCommunity: -1
+  yesResources: 2.8
+  noForestHealth: 2.2
+  noWater: 1.2
+  noCommunity: 1
+  noResources: -2.8

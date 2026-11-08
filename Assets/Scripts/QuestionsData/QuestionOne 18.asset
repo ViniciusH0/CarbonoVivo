@@ -12,12 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba64b20a9d89a94e8c865ccb27c4a98, type: 3}
   m_Name: QuestionOne 18
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
-  questionText: "Frente \xC1gua Limpa: O comit\xEA local de bacia prop\xF5e instalar biofiltros de reten\xE7\xE3o e monitoramento da qualidade dos rios. Implementar?"
-  yesForestHealth: 1.2
-  yesWater: 2.2
-  yesCommunity: 1
-  yesResources: -1
-  noForestHealth: -0.8
-  noWater: -2
-  noCommunity: -0.8
-  noResources: 0.5
+  questionText: "Um projeto de mini-hidrel\xE9trica promete energia limpa local, mas vai inundar 30 hectares de mata ciliar virgem. Aprovar a licen\xE7a?"
+  yesForestHealth: -3.2
+  yesWater: -2.5
+  yesCommunity: 2.8
+  yesResources: 2
+  noForestHealth: 2.4
+  noWater: 2
+  noCommunity: -2.6
+  noResources: -1.2
