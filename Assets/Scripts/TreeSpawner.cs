@@ -48,19 +48,31 @@ public class TreeSpawner : MonoBehaviour
         spawnedTrees.RemoveAll(t => t == null);
     }
 
-    public GameObject ForceSpawnSingleTree(bool isManual = false)
+    public bool TryFindValidSpawnPosition(bool visibleInCamera, out Vector3 validPos)
     {
-        Vector3 spawnPos = isManual ? GetVisiblePositionInCamera() : GetRandomPositionOnPlane();
+        validPos = visibleInCamera ? GetVisiblePositionInCamera() : GetRandomPositionOnPlane();
         int maxAttempts = 30;
         int attempts = 0;
 
-        while (IsInsideAnyBlocker(spawnPos) && attempts < maxAttempts)
+        while (IsInsideAnyBlocker(validPos) && attempts < maxAttempts)
         {
-            spawnPos = isManual ? GetVisiblePositionInCamera() : GetRandomPositionOnPlane();
+            validPos = visibleInCamera ? GetVisiblePositionInCamera() : GetRandomPositionOnPlane();
             attempts++;
         }
 
-        if (attempts < maxAttempts)
+        return attempts < maxAttempts;
+    }
+
+    public GameObject SpawnTreeFromDrone(Vector3 spawnPos)
+    {
+        manualPlantedCount++;
+        return CreateTreeAtPosition(spawnPos, true);
+    }
+
+    public GameObject ForceSpawnSingleTree(bool isManual = false)
+    {
+        Vector3 spawnPos;
+        if (TryFindValidSpawnPosition(isManual, out spawnPos))
         {
             if (isManual) manualPlantedCount++;
             return CreateTreeAtPosition(spawnPos, true);
@@ -115,17 +127,20 @@ public class TreeSpawner : MonoBehaviour
             box.center = new Vector3(0, 1.2f, 0);
         }
 
-        if (newTree.GetComponent<TreeClickable>() == null)
+        var clickable = newTree.GetComponent<TreeClickable>();
+        if (clickable == null)
         {
-            newTree.AddComponent<TreeClickable>();
+            clickable = newTree.AddComponent<TreeClickable>();
         }
+        clickable.SetTargetScale(targetScale);
 
         spawnedTrees.Add(newTree);
 
         if (withEffect)
         {
-            newTree.transform.localScale = Vector3.zero;
-            StartCoroutine(GrowTreeRoutine(newTree, targetScale));
+            // Começa como uma pequena muda recém-plantada e cresce lentamente ao longo de 10 segundos
+            newTree.transform.localScale = targetScale * 0.08f;
+            StartCoroutine(GrowTreeRoutine(newTree, targetScale, clickable));
             SproutVisualEffect.CreateAt(spawnPos, pixelFont);
         }
         else
@@ -136,26 +151,27 @@ public class TreeSpawner : MonoBehaviour
         return newTree;
     }
 
-    private IEnumerator GrowTreeRoutine(GameObject tree, Vector3 targetScale)
+    private IEnumerator GrowTreeRoutine(GameObject tree, Vector3 targetScale, TreeClickable clickable)
     {
-        float duration = 0.55f;
+        if (clickable != null) clickable.IsGrowing = true;
+
+        float duration = 10.0f; // Ciclo de 10 segundos até atingir o tamanho total
         float elapsed = 0f;
 
         while (elapsed < duration)
         {
             if (tree == null) yield break;
             elapsed += Time.deltaTime;
-            float t = elapsed / duration;
+            float t = Mathf.Clamp01(elapsed / duration);
 
-            // Curva com overshoot (efeito mola/elástico de broto crescendo com vigor)
-            float c4 = (2f * Mathf.PI) / 3f;
-            float bounce = t == 0 ? 0 : t == 1 ? 1 : Mathf.Pow(2, -10 * t) * Mathf.Sin((t * 10f - 0.75f) * c4) + 1;
-
-            tree.transform.localScale = targetScale * Mathf.Clamp(bounce, 0f, 1.2f);
+            // Crescimento orgânico progressivo de 8% até 100% da escala final ao longo de 10 segundos
+            float smoothT = Mathf.SmoothStep(0.08f, 1.0f, t);
+            tree.transform.localScale = targetScale * smoothT;
             yield return null;
         }
 
         if (tree != null) tree.transform.localScale = targetScale;
+        if (clickable != null) clickable.IsGrowing = false;
     }
 
     public Vector3 GetVisiblePositionInCamera()

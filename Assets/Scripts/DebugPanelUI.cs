@@ -717,6 +717,14 @@ public class DebugPanelUI : MonoBehaviour
             ShowSaveToast("Chuva interrompida.");
         });
 
+        CreateActionButton(parent, "INICIAR INCENDIO FLORESTAL", new Color(0.88f, 0.25f, 0.12f), () => {
+            if (ForestFireManager.Instance != null)
+            {
+                ForestFireManager.Instance.TriggerForestFire(2);
+                ShowSaveToast("Incendio florestal iniciado! Bombeiros a caminho!");
+            }
+        });
+
         CreateSectionHeader(parent, "EVENTOS E DESAFIOS EM TEMPO REAL");
 
         CreateActionButton(parent, "SPAWNAR LENHADOR", new Color(0.8f, 0.35f, 0.15f), () => {

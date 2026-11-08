@@ -233,6 +233,12 @@ public class IndicatorManager : MonoBehaviour
             if (hasNegative) BioacousticAudioManager.Instance.PlayNegativeWarning();
             else if (hasPositive) BioacousticAudioManager.Instance.PlayPositiveChime();
         }
+
+        // Ações negativas do jogador (especialmente danos à floresta, água ou recursos) podem despertar um Incêndio Florestal
+        if (hasNegative && ForestFireManager.Instance != null)
+        {
+            ForestFireManager.Instance.OnNegativePlayerAction(deltaForest, deltaWater);
+        }
     }
 
     public void RestoreAll(float value = 10f)

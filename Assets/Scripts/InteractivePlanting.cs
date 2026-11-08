@@ -32,6 +32,15 @@ public class InteractivePlanting : MonoBehaviour
 
     private void Start()
     {
+        if (GetComponent<ForestOperationsManager>() == null && ForestOperationsManager.Instance == null)
+        {
+            gameObject.AddComponent<ForestOperationsManager>();
+        }
+        if (GetComponent<ForestFireManager>() == null && ForestFireManager.Instance == null)
+        {
+            gameObject.AddComponent<ForestFireManager>();
+        }
+
         if (hudPlantButton == null)
         {
             var btnGo = GameObject.Find("UI_Canvas/Game/BottomActionsBar/PlantTreeButton");
@@ -119,7 +128,18 @@ public class InteractivePlanting : MonoBehaviour
             }
         }
 
-        // 2. Se não clicou em lenhador, avalia o primeiro hit válido
+        // 2. Segunda prioridade: Checa se clicou em uma árvore pegando fogo (Incêndio Florestal)
+        foreach (var hit in hits)
+        {
+            var burning = hit.collider.GetComponentInParent<BurningTreeEffect>();
+            if (burning != null && burning.IsBurning)
+            {
+                burning.OnPlayerExtinguishClick();
+                return;
+            }
+        }
+
+        // 3. Se não clicou em lenhador nem fogo, avalia o primeiro hit válido
         if (hits.Length > 0)
         {
             var firstHit = hits[0];
@@ -154,25 +174,44 @@ public class InteractivePlanting : MonoBehaviour
         if (CarbonManager1.Instance != null && CarbonManager1.Instance.CurrentCarbon >= treeCost)
         {
             CarbonManager1.Instance.SpendCarbon(treeCost);
-            GameObject newTree = TreeSpawner.Instance.ForceSpawnAt(worldPos, true);
 
-            if (newTree != null)
+            var im = UnityEngine.Object.FindAnyObjectByType<IndicatorManager>();
+            if (im != null) im.ModifyForestHealth(0.25f);
+
+            if (ForestOperationsManager.Instance != null)
             {
-                var im = UnityEngine.Object.FindAnyObjectByType<IndicatorManager>();
-                if (im != null) im.ModifyForestHealth(0.25f);
-
-                if (BioacousticAudioManager.Instance != null)
-                {
-                    BioacousticAudioManager.Instance.PlayPlantSound();
-                }
-
                 if (LumberjackManager.Instance != null)
                 {
-                    LumberjackManager.Instance.ShowAlert("Muda nativa plantada! A floresta se expande.", 2f, new Color(0.35f, 0.95f, 0.5f));
+                    LumberjackManager.Instance.ShowAlert("Drone de reflorestamento enviado da base! A árvore crescerá em 10s.", 2.4f, new Color(0.35f, 0.95f, 0.5f));
                 }
 
-                OnTreePlanted?.Invoke(newTree);
+                ForestOperationsManager.Instance.DispatchPlantingDrone(worldPos, (plantedTree) =>
+                {
+                    if (plantedTree != null)
+                    {
+                        OnTreePlanted?.Invoke(plantedTree);
+                    }
+                });
                 return true;
+            }
+            else
+            {
+                GameObject newTree = TreeSpawner.Instance.ForceSpawnAt(worldPos, true);
+                if (newTree != null)
+                {
+                    if (BioacousticAudioManager.Instance != null)
+                    {
+                        BioacousticAudioManager.Instance.PlayPlantSound();
+                    }
+
+                    if (LumberjackManager.Instance != null)
+                    {
+                        LumberjackManager.Instance.ShowAlert("Muda nativa plantada! A floresta se expande.", 2f, new Color(0.35f, 0.95f, 0.5f));
+                    }
+
+                    OnTreePlanted?.Invoke(newTree);
+                    return true;
+                }
             }
         }
         else
@@ -196,24 +235,47 @@ public class InteractivePlanting : MonoBehaviour
 
         if (CarbonManager1.Instance != null && CarbonManager1.Instance.CurrentCarbon >= treeCost)
         {
+            Vector3 targetPos;
+            if (!TreeSpawner.Instance.TryFindValidSpawnPosition(true, out targetPos))
+                return;
+
             CarbonManager1.Instance.SpendCarbon(treeCost);
-            GameObject newTree = TreeSpawner.Instance.ForceSpawnSingleTree(true);
-            if (newTree != null)
+
+            var im = UnityEngine.Object.FindAnyObjectByType<IndicatorManager>();
+            if (im != null) im.ModifyForestHealth(0.25f);
+
+            if (ForestOperationsManager.Instance != null)
             {
-                var im = UnityEngine.Object.FindAnyObjectByType<IndicatorManager>();
-                if (im != null) im.ModifyForestHealth(0.25f);
-
-                if (BioacousticAudioManager.Instance != null)
-                {
-                    BioacousticAudioManager.Instance.PlayPlantSound();
-                }
-
                 if (LumberjackManager.Instance != null)
                 {
-                    LumberjackManager.Instance.ShowAlert("Muda nativa plantada à sua frente!", 2f, new Color(0.35f, 0.95f, 0.5f));
+                    LumberjackManager.Instance.ShowAlert("Drone de reflorestamento enviado da base! A árvore crescerá em 10s.", 2.4f, new Color(0.35f, 0.95f, 0.5f));
                 }
 
-                OnTreePlanted?.Invoke(newTree);
+                ForestOperationsManager.Instance.DispatchPlantingDrone(targetPos, (plantedTree) =>
+                {
+                    if (plantedTree != null)
+                    {
+                        OnTreePlanted?.Invoke(plantedTree);
+                    }
+                });
+            }
+            else
+            {
+                GameObject newTree = TreeSpawner.Instance.ForceSpawnAt(targetPos, true);
+                if (newTree != null)
+                {
+                    if (BioacousticAudioManager.Instance != null)
+                    {
+                        BioacousticAudioManager.Instance.PlayPlantSound();
+                    }
+
+                    if (LumberjackManager.Instance != null)
+                    {
+                        LumberjackManager.Instance.ShowAlert("Muda nativa plantada à sua frente!", 2f, new Color(0.35f, 0.95f, 0.5f));
+                    }
+
+                    OnTreePlanted?.Invoke(newTree);
+                }
             }
         }
         else

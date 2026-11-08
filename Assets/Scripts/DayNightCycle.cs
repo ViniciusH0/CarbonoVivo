@@ -259,23 +259,26 @@ public class DayNightCycle : MonoBehaviour
         RenderSettings.ambientEquatorColor = Color.Lerp(RenderSettings.ambientEquatorColor, targetEquator, Time.deltaTime * 3f);
         RenderSettings.ambientGroundColor = Color.Lerp(RenderSettings.ambientGroundColor, targetGround, Time.deltaTime * 3f);
 
-        // Neblina e profundidade atmosférica: ativa apenas se estiver chovendo ou se configurada no painel de debug
+        // Neblina e profundidade atmosférica: suave e equilibrada em modo Linear para nunca ofuscar a ilha e a câmera
         if (rainWeight > 0.05f)
         {
             RenderSettings.fog = true;
-            RenderSettings.fogMode = FogMode.ExponentialSquared;
-            Color rainFogColor = new Color(0.45f, 0.52f, 0.58f, 1.0f);
-            float rainFogDensity = Mathf.Lerp(0.001f, 0.009f, rainWeight) * fogDensityMultiplier;
+            RenderSettings.fogMode = FogMode.Linear;
+            // A câmera está a ~272m de distância do solo. O fog começa após 280m e se estende até 650m
+            RenderSettings.fogStartDistance = 280f;
+            RenderSettings.fogEndDistance = 650f;
+            Color rainFogColor = new Color(0.40f, 0.46f, 0.48f, 1.0f);
 
             RenderSettings.fogColor = Color.Lerp(RenderSettings.fogColor, rainFogColor, Time.deltaTime * 3f);
-            RenderSettings.fogDensity = Mathf.Lerp(RenderSettings.fogDensity, rainFogDensity, Time.deltaTime * 3f);
         }
         else if (fogDensityMultiplier > 1.05f)
         {
             RenderSettings.fog = true;
-            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogMode = FogMode.Linear;
+            float extra = Mathf.Clamp(fogDensityMultiplier - 1.0f, 0f, 3f);
+            RenderSettings.fogStartDistance = Mathf.Lerp(280f, 160f, extra / 3f);
+            RenderSettings.fogEndDistance = Mathf.Lerp(650f, 400f, extra / 3f);
             RenderSettings.fogColor = Color.Lerp(RenderSettings.fogColor, currentParams.fogColor, Time.deltaTime * 3f);
-            RenderSettings.fogDensity = Mathf.Lerp(RenderSettings.fogDensity, 0.002f * (fogDensityMultiplier - 1f), Time.deltaTime * 3f);
         }
         else
         {
@@ -285,7 +288,8 @@ public class DayNightCycle : MonoBehaviour
         if (targetCamera == null) targetCamera = Camera.main;
         if (targetCamera != null)
         {
-            Color targetBg = Color.Lerp(currentParams.cameraBgColor, new Color(0.38f, 0.44f, 0.5f), rainWeight);
+            Color rainSkyTint = new Color(0.12f, 0.16f, 0.15f, 1.0f); // Tom escuro e rico para manter contraste na chuva
+            Color targetBg = Color.Lerp(currentParams.cameraBgColor, rainSkyTint, rainWeight);
             targetCamera.backgroundColor = Color.Lerp(targetCamera.backgroundColor, targetBg, Time.deltaTime * 3f);
         }
     }

@@ -8,8 +8,10 @@ public class BioacousticAudioManager : MonoBehaviour
     private AudioSource degradedSource;
     private AudioSource regeneratedSource;
     private AudioSource rainSource;
+    private AudioSource fireSource;
     private AudioSource sfxSource;
     private float targetRainVolume = 0f;
+    private float targetFireVolume = 0f;
 
     private void Awake()
     {
@@ -46,6 +48,13 @@ public class BioacousticAudioManager : MonoBehaviour
         rainSource.clip = GenerateRainLoop();
         rainSource.Play();
 
+        // Fonte para incêndio florestal procedural (chamas rugindo + estalos de madeira)
+        fireSource = gameObject.AddComponent<AudioSource>();
+        fireSource.loop = true;
+        fireSource.volume = 0f;
+        fireSource.clip = GenerateFireLoop();
+        fireSource.Play();
+
         // Fonte para efeitos sonoros pontuais
         sfxSource = gameObject.AddComponent<AudioSource>();
         sfxSource.loop = false;
@@ -72,6 +81,9 @@ public class BioacousticAudioManager : MonoBehaviour
 
         if (rainSource != null)
             rainSource.volume = Mathf.MoveTowards(rainSource.volume, targetRainVolume, Time.deltaTime * 0.6f);
+
+        if (fireSource != null)
+            fireSource.volume = Mathf.MoveTowards(fireSource.volume, targetFireVolume, Time.deltaTime * 1.8f);
     }
 
     public void StartRainSound()
@@ -82,6 +94,25 @@ public class BioacousticAudioManager : MonoBehaviour
     public void StopRainSound()
     {
         targetRainVolume = 0f;
+    }
+
+    public void SetFireAudioIntensity(float normalizedIntensity)
+    {
+        targetFireVolume = Mathf.Clamp01(normalizedIntensity) * 0.75f;
+    }
+
+    public void PlayExtinguishSound()
+    {
+        if (sfxSource == null) return;
+        AudioClip clip = GenerateWaterSizzleSound(0.28f);
+        sfxSource.PlayOneShot(clip, 0.75f);
+    }
+
+    public void PlayDroneLaunchSound()
+    {
+        if (sfxSource == null) return;
+        AudioClip clip = GenerateShortTone(340f, 520f, 0.18f);
+        sfxSource.PlayOneShot(clip, 0.45f);
     }
 
     public void PlayPlantSound()
@@ -237,6 +268,73 @@ public class BioacousticAudioManager : MonoBehaviour
         }
 
         AudioClip clip = AudioClip.Create("RainLoop", length, 1, sampleRate, false);
+        clip.SetData(data, 0);
+        return clip;
+    }
+
+    // Síntese procedural de incêndio florestal: rugido grave das chamas + chiado + estalos secos de madeira queimando
+    private AudioClip GenerateFireLoop()
+    {
+        int sampleRate = 22050;
+        int length = sampleRate * 4; // 4 segundos de loop rico
+        float[] data = new float[length];
+        System.Random rnd = new System.Random(909);
+
+        float lowRoar = 0f;
+        float midHiss = 0f;
+        float crackleEnv = 0f;
+        float crackleFreq = 1800f;
+
+        for (int i = 0; i < length; i++)
+        {
+            float t = (float)i / sampleRate;
+            float white = (float)(rnd.NextDouble() * 2.0 - 1.0);
+
+            // 1. Rugido grave das labaredas (filtro passa-baixa + modulação de vento/chama)
+            lowRoar = Mathf.Lerp(lowRoar, white, 0.035f);
+            float flameFlutter = 0.65f + 0.35f * Mathf.Sin(2f * Mathf.PI * 3.2f * t) * Mathf.Cos(2f * Mathf.PI * 5.7f * t);
+            float roarSignal = lowRoar * flameFlutter * 0.9f;
+
+            // 2. Chiado médio de calor e folhas queimando
+            midHiss = Mathf.Lerp(midHiss, white - lowRoar, 0.22f);
+            float hissSignal = midHiss * 0.22f;
+
+            // 3. Estalos agudos de galhos e fagulhas (crackling pops)
+            if (rnd.NextDouble() < 0.0018)
+            {
+                crackleEnv = (float)(0.55 + rnd.NextDouble() * 0.45);
+                crackleFreq = (float)(1400.0 + rnd.NextDouble() * 2200.0);
+            }
+            crackleEnv *= 0.965f;
+            float crackleSignal = Mathf.Sin(2f * Mathf.PI * crackleFreq * t) * white * crackleEnv * 0.85f;
+
+            data[i] = Mathf.Clamp(roarSignal + hissSignal + crackleSignal, -1f, 1f);
+        }
+
+        AudioClip clip = AudioClip.Create("ForestFireLoop", length, 1, sampleRate, false);
+        clip.SetData(data, 0);
+        return clip;
+    }
+
+    private AudioClip GenerateWaterSizzleSound(float duration)
+    {
+        int sampleRate = 22050;
+        int length = Mathf.RoundToInt(sampleRate * duration);
+        float[] data = new float[length];
+        System.Random rnd = new System.Random();
+
+        float filtered = 0f;
+        for (int i = 0; i < length; i++)
+        {
+            float progress = (float)i / length;
+            float white = (float)(rnd.NextDouble() * 2.0 - 1.0);
+            filtered = Mathf.Lerp(filtered, white, Mathf.Lerp(0.45f, 0.12f, progress));
+            float env = Mathf.Sin(progress * Mathf.PI) * (1f - progress * 0.5f);
+            float dropTone = Mathf.Sin(2f * Mathf.PI * Mathf.Lerp(420f, 180f, progress) * i / sampleRate) * 0.25f;
+            data[i] = Mathf.Clamp((filtered * 0.65f + dropTone) * env, -1f, 1f);
+        }
+
+        AudioClip clip = AudioClip.Create("WaterExtinguish", length, 1, sampleRate, false);
         clip.SetData(data, 0);
         return clip;
     }
