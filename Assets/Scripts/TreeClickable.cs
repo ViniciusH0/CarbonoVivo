@@ -13,6 +13,7 @@ public class TreeClickable : MonoBehaviour
 
     public void OnPlayerTapped()
     {
+        if (StepController.WorldInputBlocked) return;
         if (isAnimating) return;
 
         // Bonificação ativa por toque (Loop de Idle/Clicker Zen)

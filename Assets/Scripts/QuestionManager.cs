@@ -25,6 +25,7 @@ public class QuestionManager : MonoBehaviour
 
     private QuestionData currentQuestion;
     private bool isFading = false;
+    private StepController flow;
 
     [Header("Question Timing")]
     public float firstQuestionDelay = 18f;
@@ -42,6 +43,7 @@ public class QuestionManager : MonoBehaviour
 
     void Start()
     {
+        flow = StepController.FindFor(this);
         if (questionCanvas != null)
         {
             questionCanvas.alpha = 0f;
@@ -119,6 +121,7 @@ public class QuestionManager : MonoBehaviour
         {
             questionCanvas.blocksRaycasts = true;
             questionCanvas.interactable = true;
+            if (flow != null) flow.BeginDialogue(questionCanvas);
             StartCoroutine(FadeCanvas(1f));
         }
 
@@ -184,5 +187,18 @@ public class QuestionManager : MonoBehaviour
         }
         if (questionCanvas != null) questionCanvas.alpha = targetAlpha;
         isFading = false;
+        if (targetAlpha == 0 && flow != null) flow.EndDialogue(questionCanvas);
+    }
+
+    private void OnDisable()
+    {
+        if (!Application.isPlaying) return;
+        StopAllCoroutines();
+        if (questionCanvas != null)
+        {
+            questionCanvas.alpha = 0;
+            questionCanvas.blocksRaycasts = questionCanvas.interactable = false;
+            if (flow != null) flow.EndDialogue(questionCanvas);
+        }
     }
 }

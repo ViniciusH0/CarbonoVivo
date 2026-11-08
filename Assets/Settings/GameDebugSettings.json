@@ -1,9 +1,9 @@
 {
-    "decisionInterval": 22.0,
-    "carbonGenerationMultiplier": 0.20473402738571167,
+    "decisionInterval": 20.41809844970703,
+    "carbonGenerationMultiplier": 0.20473402738571168,
     "treePlantCost": 10.0,
     "indicatorDecayMultiplier": 1.0,
-    "lumberjackSpawnInterval": 60.0,
+    "lumberjackSpawnInterval": 5.0,
     "lumberjackHitsToDefeat": 3,
     "lumberjackCutTimeLimit": 15.0,
     "timeOfDay": 8.5,

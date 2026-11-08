@@ -7,6 +7,7 @@ public class ScrollCam : MonoBehaviour
 
     public void MoveCamera(float deltaY)
     {
+        if (StepController.WorldInputBlocked) return;
         float newY = transform.position.y - (deltaY * speed);
         newY = Mathf.Clamp(newY, minY, maxY);
         transform.position = new Vector3(transform.position.x, newY, transform.position.z);

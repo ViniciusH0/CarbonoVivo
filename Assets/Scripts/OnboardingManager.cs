@@ -1,95 +1,81 @@
-using UnityEngine;
-using TMPro;
 using System.Collections;
+using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class OnboardingManager : MonoBehaviour
+public class OnboardingManager : MonoBehaviour, IPointerClickHandler
 {
-    [Header("UI References")]
     public CanvasGroup onboardingCanvas;
     public TextMeshProUGUI tutorialText;
     public Button startGameButton;
+    [TextArea(2, 4)] public string[] tutorialLines;
+    public float fadeSpeed = 5;
+    private int currentLineIndex;
+    private bool active;
+    private bool fading;
+    private StepController flow;
 
-    [Header("Tutorial Content")]
-    [TextArea(2, 4)]
-    public string[] tutorialLines;
-    public float fadeSpeed = 5f;
-
-    private int currentLineIndex = 0;
-    private bool isOnboardingActive = false;
-    private bool isFading = false;
-
-    void Start()
+    private void Start()
     {
-        onboardingCanvas.alpha = 0f;
-        onboardingCanvas.blocksRaycasts = false;
-        onboardingCanvas.interactable = false;
-        
-        // Correção: Sintaxe correta para adicionar evento ao botão no Unity
-        startGameButton.onClick.AddListener(StartOnboarding);
-    }
-
-    void Update()
-    {
-        if (!isOnboardingActive || isFading) return;
-
-        if (Input.GetMouseButtonDown(0) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began))
-        {
-            AdvanceTutorial();
-        }
+        flow = StepController.FindFor(this);
+        onboardingCanvas.alpha = 0;
+        onboardingCanvas.blocksRaycasts = onboardingCanvas.interactable = false;
+        if (startGameButton != null) startGameButton.onClick.AddListener(StartOnboarding);
     }
 
     public void StartOnboarding()
     {
-        if (tutorialLines.Length == 0) return;
-
-        // Oculta o botão de start para não atrapalhar o jogo/tutorial
-        startGameButton.gameObject.SetActive(false);
-
-        currentLineIndex = 0;
-        tutorialText.text = tutorialLines[currentLineIndex];
-        isOnboardingActive = true;
-        
-        onboardingCanvas.blocksRaycasts = true;
-        onboardingCanvas.interactable = true;
-
-        StartCoroutine(FadeCanvas(1f));
+        if (active || tutorialLines == null || tutorialLines.Length == 0 || onboardingCanvas == null) return;
+        if (flow == null) flow = StepController.FindFor(this);
+        if (startGameButton != null) startGameButton.gameObject.SetActive(false);
+        currentLineIndex = 0; active = true;
+        tutorialText.text = tutorialLines[0];
+        onboardingCanvas.blocksRaycasts = onboardingCanvas.interactable = true;
+        if (flow != null) flow.BeginDialogue(onboardingCanvas);
+        StartCoroutine(FadeCanvas(1));
     }
 
-    private void AdvanceTutorial()
+    public void OnPointerClick(PointerEventData eventData)
     {
+        if (!active || fading || eventData.button != PointerEventData.InputButton.Left) return;
         currentLineIndex++;
-
-        if (currentLineIndex < tutorialLines.Length)
-        {
-            tutorialText.text = tutorialLines[currentLineIndex];
-        }
+        if (currentLineIndex < tutorialLines.Length) tutorialText.text = tutorialLines[currentLineIndex];
         else
         {
-            EndOnboarding();
+            active = false;
+            onboardingCanvas.interactable = false;
+            StartCoroutine(FadeCanvas(0));
         }
     }
 
-    private void EndOnboarding()
+    private IEnumerator FadeCanvas(float target)
     {
-        isOnboardingActive = false;
-        onboardingCanvas.blocksRaycasts = false;
-        onboardingCanvas.interactable = false;
-
-        StartCoroutine(FadeCanvas(0f));
-        
-        // Coloque a lógica de iniciar a gameplay aqui
-    }
-
-    private IEnumerator FadeCanvas(float targetAlpha)
-    {
-        isFading = true;
-        while (Mathf.Abs(onboardingCanvas.alpha - targetAlpha) > 0.01f)
+        fading = true;
+        while (!Mathf.Approximately(onboardingCanvas.alpha, target))
         {
-            onboardingCanvas.alpha = Mathf.Lerp(onboardingCanvas.alpha, targetAlpha, Time.deltaTime * fadeSpeed);
+            onboardingCanvas.alpha = Mathf.MoveTowards(onboardingCanvas.alpha, target,
+                Time.unscaledDeltaTime * Mathf.Max(.1f, fadeSpeed));
             yield return null;
         }
-        onboardingCanvas.alpha = targetAlpha;
-        isFading = false;
+        fading = false;
+        if (target == 0)
+        {
+            onboardingCanvas.blocksRaycasts = false;
+            if (flow != null) flow.EndDialogue(onboardingCanvas);
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (!Application.isPlaying) return;
+        StopAllCoroutines();
+        active = fading = false;
+        if (onboardingCanvas != null)
+        {
+            onboardingCanvas.alpha = 0;
+            onboardingCanvas.blocksRaycasts = onboardingCanvas.interactable = false;
+            if (flow != null) flow.EndDialogue(onboardingCanvas);
+        }
     }
 }

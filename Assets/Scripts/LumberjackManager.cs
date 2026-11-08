@@ -468,6 +468,7 @@ public class LumberjackActive : MonoBehaviour
 
     public void OnPlayerTapped()
     {
+        if (StepController.WorldInputBlocked) return;
         if (isDefeated) return;
 
         hitsReceived++;

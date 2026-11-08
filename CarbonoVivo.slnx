@@ -1,4 +1,16 @@
 ﻿<Solution>
+  <Project Path="DTT.EditorUtilities.Editor.csproj" />
+  <Project Path="DTT.ProceduralUI.Editor.csproj" />
+  <Project Path="DTT.RuntimeUtilities.Runtime.csproj" />
+  <Project Path="DTT.PublishingTools.Editor.csproj" />
+  <Project Path="DTT.ProceduralUI.Runtime.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="DTT.RuntimeUtilities.Demo.csproj" />
+  <Project Path="DTT.EditorUtilities.Demo.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="DTT.ProceduralUI.Tests.csproj" />
+  <Project Path="DTT.ProceduralUI.Tests.Editor.csproj" />
+  <Project Path="DTT.PublishingTools.Runtime.csproj" />
+  <Project Path="DTT.ProceduralUI.Runtime.Unsafe.csproj" />
+  <Project Path="DTT.ProceduralUI.Demo.csproj" />
 </Solution>

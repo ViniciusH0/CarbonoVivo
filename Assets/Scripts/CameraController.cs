@@ -1,111 +1,195 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
+/// <summary>Ground-plane navigation with terrain-aware pan and zoom limits.</summary>
 [RequireComponent(typeof(Camera))]
-public class MobileCameraController : MonoBehaviour
+[DisallowMultipleComponent]
+public sealed class MobileCameraController : MonoBehaviour
 {
-    [Header("Movement")]
-    [SerializeField] private float dragSpeed = 0.5f;
-    [SerializeField] private float movementSmoothness = 10f;
-    
-    // Define os limites X e Y a partir do centro
-    [Header("Limits")]
-    [SerializeField] private Vector2 movementLimits = new Vector2(10f, 10f);
+    [SerializeField] private MeshRenderer ground;
+    [SerializeField] private float minOrthographicSize = 28;
+    [SerializeField] private float maxOrthographicSize = 68;
+    [SerializeField] private float scrollSensitivity = 1.6f;
+    [SerializeField] private float zoomSmoothness = 12;
+    [SerializeField] private float dragThreshold = 20;
 
-    [Header("Zoom (Pinch / Scroll)")]
-    [SerializeField] private float zoomSpeed = 0.1f;
-    [SerializeField] private float mouseScrollSpeed = 2f;
-    [SerializeField] private float zoomSmoothness = 10f;
-    [SerializeField] private float minOrthographicSize = 2f;
-    [SerializeField] private float maxOrthographicSize = 10f;
-
-    private Camera cam;
-    private Vector3 targetPosition;
+    private Camera view;
+    private Bounds terrainBounds;
+    private Bounds focusBounds;
+    private Vector3 cameraOffset;
+    private Vector3 focus;
+    private Vector3 targetFocus;
     private float targetZoom;
-    private Vector3 startPosition;
+    private Vector2 pressPosition;
+    private Vector2 lastPosition;
+    private bool tracking;
+    private bool dragging;
+
+    public Vector3 GroundFocus => focus;
+    public float MinimumZoom => minOrthographicSize;
+    public float MaximumZoom => EffectiveMaximumZoom();
 
     private void Awake()
     {
-        cam = GetComponent<Camera>();
-        targetPosition = transform.position;
-        startPosition = transform.position; // Define o centro da área permitida
-        targetZoom = cam.orthographicSize;
+        view = GetComponent<Camera>();
+        var spawner = FindAnyObjectByType<TreeSpawner>();
+        if (ground == null && spawner != null) ground = spawner.plane;
+        if (ground == null || !view.orthographic || Mathf.Abs(transform.forward.y) < .01f)
+        {
+            enabled = false;
+            return;
+        }
+        terrainBounds = ground.bounds;
+        focusBounds = terrainBounds;
+        // Large border blockers identify the scenery surrounding the usable terrain.
+        if (spawner != null && spawner.spawnBlockers != null)
+        foreach (var blocker in spawner.spawnBlockers)
+        {
+            if (blocker == null) continue;
+            var b = blocker.bounds;
+            var min = focusBounds.min; var max = focusBounds.max;
+            if (b.size.x > terrainBounds.size.x * .85f)
+            {
+                if (b.center.z < terrainBounds.center.z - terrainBounds.size.z * .25f)
+                    min.z = Mathf.Max(min.z, b.max.z);
+                else if (b.center.z > terrainBounds.center.z + terrainBounds.size.z * .25f)
+                    max.z = Mathf.Min(max.z, b.min.z);
+            }
+            if (b.size.z > terrainBounds.size.z * .85f)
+            {
+                if (b.center.x < terrainBounds.center.x - terrainBounds.size.x * .25f)
+                    min.x = Mathf.Max(min.x, b.max.x);
+                else if (b.center.x > terrainBounds.center.x + terrainBounds.size.x * .25f)
+                    max.x = Mathf.Min(max.x, b.min.x);
+            }
+            focusBounds.SetMinMax(min, max);
+        }
+        GroundPoint(new Vector2(Screen.width * .5f, Screen.height * .5f), out focus);
+        cameraOffset = transform.position - focus;
+        targetFocus = focus;
+        targetZoom = Mathf.Clamp(view.orthographicSize, Mathf.Min(minOrthographicSize, MaximumZoom), MaximumZoom);
+        view.orthographicSize = targetZoom;
+        focus = targetFocus = ClampFocus(focus, targetZoom);
+        transform.position = focus + cameraOffset;
     }
+
+    private void OnEnable() { tracking = dragging = false; }
 
     private void Update()
     {
+        if (view == null || StepController.WorldInputBlocked) return;
         HandleInput();
-        ApplyMovementLimits();
-        SmoothUpdate();
+        targetZoom = Mathf.Clamp(targetZoom, Mathf.Min(minOrthographicSize, MaximumZoom), MaximumZoom);
+        targetFocus = ClampFocus(targetFocus, targetZoom);
+        float blend = 1 - Mathf.Exp(-zoomSmoothness * Time.deltaTime);
+        view.orthographicSize = Mathf.Lerp(view.orthographicSize, targetZoom, blend);
+        focus = ClampFocus(Vector3.Lerp(focus, targetFocus, blend), view.orthographicSize);
+        transform.position = focus + cameraOffset;
     }
 
     private void HandleInput()
     {
-        float scroll = Input.GetAxis("Mouse ScrollWheel");
-        if (Mathf.Abs(scroll) > 0.01f)
+        if (Input.touchCount > 1)
         {
-            targetZoom -= scroll * mouseScrollSpeed;
-            targetZoom = Mathf.Clamp(targetZoom, minOrthographicSize, maxOrthographicSize);
+            var a = Input.GetTouch(0); var b = Input.GetTouch(1);
+            tracking = dragging = false;
+            if (OverUI(a.fingerId) || OverUI(b.fingerId)) return;
+            float previous = ((a.position - a.deltaPosition) - (b.position - b.deltaPosition)).magnitude;
+            float current = (a.position - b.position).magnitude;
+            if (current > 1 && previous > 1) SetZoom(targetZoom * previous / current);
+            return;
         }
-
         if (Input.touchCount == 1)
         {
-            Touch touch = Input.GetTouch(0);
-
-            if (touch.phase == TouchPhase.Moved)
-            {
-                Vector2 delta = touch.deltaPosition;
-                float speedMultiplier = cam.orthographicSize * 0.002f;
-                
-                targetPosition -= new Vector3(delta.x, delta.y, 0) * dragSpeed * speedMultiplier;
-            }
+            var touch = Input.GetTouch(0);
+            if (touch.phase == TouchPhase.Began) BeginDrag(touch.position, OverUI(touch.fingerId));
+            else if (touch.phase == TouchPhase.Moved) Drag(touch.position);
+            else if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
+                tracking = dragging = false;
+            return;
         }
-        else if (Input.touchCount == 2)
+        if (!OverUI(-1))
         {
-            Touch touchZero = Input.GetTouch(0);
-            Touch touchOne = Input.GetTouch(1);
-
-            Vector2 touchZeroPrevPos = touchZero.position - touchZero.deltaPosition;
-            Vector2 touchOnePrevPos = touchOne.position - touchOne.deltaPosition;
-
-            float prevTouchDeltaMag = (touchZeroPrevPos - touchOnePrevPos).magnitude;
-            float touchDeltaMag = (touchZero.position - touchOne.position).magnitude;
-
-            float deltaMagnitudeDiff = prevTouchDeltaMag - touchDeltaMag;
-
-            targetZoom += deltaMagnitudeDiff * zoomSpeed;
-            targetZoom = Mathf.Clamp(targetZoom, minOrthographicSize, maxOrthographicSize);
+            float wheel = Input.GetAxis("Mouse ScrollWheel");
+            if (Mathf.Abs(wheel) > .001f) SetZoom(targetZoom * Mathf.Exp(-wheel * scrollSensitivity));
         }
-        else if (Application.isEditor && Input.GetMouseButton(0))
-        {
-            float mouseX = Input.GetAxis("Mouse X");
-            float mouseY = Input.GetAxis("Mouse Y");
-
-            if (Mathf.Abs(mouseX) > 0.01f || Mathf.Abs(mouseY) > 0.01f)
-            {
-                float speedMultiplier = cam.orthographicSize * 0.05f;
-                targetPosition -= new Vector3(mouseX, mouseY, 0) * dragSpeed * speedMultiplier;
-            }
-        }
+        if (Input.GetMouseButtonDown(0)) BeginDrag(Input.mousePosition, OverUI(-1));
+        if (Input.GetMouseButton(0)) Drag(Input.mousePosition);
+        if (Input.GetMouseButtonUp(0)) tracking = dragging = false;
     }
 
-    // Trava a posição alvo dentro da caixa delimitadora
-    private void ApplyMovementLimits()
+    private static bool OverUI(int finger)
     {
-        targetPosition.x = Mathf.Clamp(targetPosition.x, startPosition.x - movementLimits.x, startPosition.x + movementLimits.x);
-        targetPosition.y = Mathf.Clamp(targetPosition.y, startPosition.y - movementLimits.y, startPosition.y + movementLimits.y);
+        if (EventSystem.current == null) return false;
+        return finger < 0 ? EventSystem.current.IsPointerOverGameObject() :
+            EventSystem.current.IsPointerOverGameObject(finger);
     }
 
-    private void SmoothUpdate()
+    private void BeginDrag(Vector2 position, bool overUI)
     {
-        transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * movementSmoothness);
-        cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, targetZoom, Time.deltaTime * zoomSmoothness);
+        tracking = !overUI; dragging = false;
+        pressPosition = lastPosition = position;
     }
 
-    // Desenha a área de limite no editor
-    private void OnDrawGizmosSelected()
+    private void Drag(Vector2 position)
     {
-        Vector3 center = Application.isPlaying ? startPosition : transform.position;
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireCube(center, new Vector3(movementLimits.x * 2, movementLimits.y * 2, 0));
+        if (!tracking) return;
+        if (!dragging && Vector2.Distance(position, pressPosition) < dragThreshold) return;
+        dragging = true;
+        if (GroundPoint(lastPosition, out var from) && GroundPoint(position, out var to))
+            targetFocus += from - to;
+        lastPosition = position;
+    }
+
+    private bool GroundPoint(Vector2 screen, out Vector3 point)
+    {
+        var plane = new Plane(Vector3.up, terrainBounds.center);
+        var ray = view.ScreenPointToRay(screen);
+        if (plane.Raycast(ray, out float distance)) { point = ray.GetPoint(distance); return true; }
+        point = terrainBounds.center; return false;
+    }
+
+    private Vector3 GroundProjection(Vector3 offset)
+        => offset - transform.forward * (offset.y / transform.forward.y);
+
+    private Vector2 ViewExtents(float zoom)
+    {
+        var horizontal = GroundProjection(transform.right * (zoom * view.aspect));
+        var vertical = GroundProjection(transform.up * zoom);
+        return new Vector2(Mathf.Abs(horizontal.x) + Mathf.Abs(vertical.x),
+            Mathf.Abs(horizontal.z) + Mathf.Abs(vertical.z));
+    }
+
+    private float EffectiveMaximumZoom()
+    {
+        if (view == null) return maxOrthographicSize;
+        var unit = ViewExtents(1);
+        return Mathf.Min(maxOrthographicSize, terrainBounds.extents.x / Mathf.Max(.001f, unit.x),
+            terrainBounds.extents.z / Mathf.Max(.001f, unit.y));
+    }
+
+    private Vector3 ClampFocus(Vector3 point, float zoom)
+    {
+        var extent = ViewExtents(zoom);
+        float minX = Mathf.Max(focusBounds.min.x, terrainBounds.min.x + extent.x);
+        float maxX = Mathf.Min(focusBounds.max.x, terrainBounds.max.x - extent.x);
+        float minZ = Mathf.Max(focusBounds.min.z, terrainBounds.min.z + extent.y);
+        float maxZ = Mathf.Min(focusBounds.max.z, terrainBounds.max.z - extent.y);
+        point.x = minX <= maxX ? Mathf.Clamp(point.x, minX, maxX) : terrainBounds.center.x;
+        point.z = minZ <= maxZ ? Mathf.Clamp(point.z, minZ, maxZ) : terrainBounds.center.z;
+        point.y = terrainBounds.center.y;
+        return point;
+    }
+
+    public void SetZoom(float size)
+        => targetZoom = Mathf.Clamp(size, Mathf.Min(minOrthographicSize, MaximumZoom), MaximumZoom);
+
+    public void FocusOn(Vector3 point, bool immediate = false)
+    {
+        targetFocus = ClampFocus(point, targetZoom);
+        if (!immediate) return;
+        view.orthographicSize = targetZoom;
+        focus = targetFocus;
+        transform.position = focus + cameraOffset;
     }
 }

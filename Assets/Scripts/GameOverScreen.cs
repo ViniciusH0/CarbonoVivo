@@ -41,6 +41,9 @@ public class GameOverScreen : MonoBehaviour
 
     public void Show(string reason)
     {
+        transform.SetAsLastSibling();
+        var flow = StepController.FindFor(this);
+        if (flow != null) flow.SetResultScreen();
         if (reasonText != null)
         {
             reasonText.text = reason;
@@ -56,28 +59,14 @@ public class GameOverScreen : MonoBehaviour
 
     public void RestartGame()
     {
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        var flow = StepController.FindFor(this);
+        if (flow != null) flow.RestartGame();
     }
 
     public void ReturnToMainMenu()
     {
-        Time.timeScale = 1f;
-        var stepController = UnityEngine.Object.FindAnyObjectByType<StepController>();
-        if (stepController != null)
-        {
-            if (gameOverCanvas != null)
-            {
-                gameOverCanvas.alpha = 0f;
-                gameOverCanvas.blocksRaycasts = false;
-                gameOverCanvas.interactable = false;
-            }
-            stepController.ShowStep(0);
-        }
-        else
-        {
-            RestartGame();
-        }
+        var flow = StepController.FindFor(this);
+        if (flow != null) flow.ReturnToMainMenu();
     }
 
     private IEnumerator FadeCanvas(float targetAlpha)

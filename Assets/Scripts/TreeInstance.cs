@@ -17,6 +17,7 @@ public class TreeInstance : MonoBehaviour, IClickable
  
     public void OnClicked()
     {
+        if (StepController.WorldInputBlocked) return;
         Co2.AddCo2(Co2PerSecond());
         Debug.Log("Tree clicked!");
     }

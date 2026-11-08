@@ -46,6 +46,7 @@ public class InteractivePlanting : MonoBehaviour
 
     private void Update()
     {
+        if (StepController.WorldInputBlocked) { isPointerDown = false; return; }
         HandleTouchInput();
     }
 
@@ -140,6 +141,7 @@ public class InteractivePlanting : MonoBehaviour
 
     public bool TryPlantAt(Vector3 worldPos)
     {
+        if (StepController.WorldInputBlocked) return false;
         if (TreeSpawner.Instance == null) return false;
         if (TreeSpawner.Instance.IsInsideAnyBlocker(worldPos))
         {
@@ -183,6 +185,7 @@ public class InteractivePlanting : MonoBehaviour
 
     public void PlantTreeRandomly()
     {
+        if (StepController.WorldInputBlocked) return;
         if (Time.unscaledTime - lastPlantTime < 0.15f && lastPlantTime >= 0f) return;
         lastPlantTime = Time.unscaledTime;
 

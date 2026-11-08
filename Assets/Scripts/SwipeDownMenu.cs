@@ -49,6 +49,8 @@ public class SwipeDownMenu : MonoBehaviour
 
     private void Update()
     {
+        var flow = StepController.FindFor(this);
+        if (flow != null && (!flow.IsGameplayActive || flow.HasDialogue)) return;
         // Gesto de deslizar para baixo (Swipe Down) a partir do topo da tela
         if (Input.touchCount > 0)
         {
@@ -80,6 +82,8 @@ public class SwipeDownMenu : MonoBehaviour
 
     public void TogglePauseMenu()
     {
+        var flow = StepController.FindFor(this);
+        if (flow != null && (!flow.IsGameplayActive || flow.HasDialogue)) return;
         if (isPaused) Resume();
         else OpenPauseMenu();
     }
@@ -87,7 +91,8 @@ public class SwipeDownMenu : MonoBehaviour
     public void OpenPauseMenu()
     {
         isPaused = true;
-        Time.timeScale = 0f;
+        var flow = StepController.FindFor(this);
+        if (flow != null) flow.SetPauseState(true);
         if (pauseMenuCanvas != null)
         {
             pauseMenuCanvas.alpha = 1f;
@@ -99,7 +104,8 @@ public class SwipeDownMenu : MonoBehaviour
     public void Resume()
     {
         isPaused = false;
-        Time.timeScale = 1f;
+        var flow = StepController.FindFor(this);
+        if (flow != null) flow.SetPauseState(false);
         if (pauseMenuCanvas != null)
         {
             pauseMenuCanvas.alpha = 0f;
@@ -111,7 +117,7 @@ public class SwipeDownMenu : MonoBehaviour
     public void ShowInstructions()
     {
         Resume();
-        var stepController = UnityEngine.Object.FindAnyObjectByType<StepController>();
+        var stepController = StepController.FindFor(this);
         if (stepController != null)
         {
             stepController.ShowStep(1); // 1 = Instruções
@@ -120,21 +126,13 @@ public class SwipeDownMenu : MonoBehaviour
 
     public void RestartGame()
     {
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        var flow = StepController.FindFor(this);
+        if (flow != null) flow.RestartGame();
     }
 
     public void ReturnToMenu()
     {
-        Resume();
-        var stepController = UnityEngine.Object.FindAnyObjectByType<StepController>();
-        if (stepController != null)
-        {
-            stepController.ShowStep(0); // 0 = MainMenu
-        }
-        else
-        {
-            RestartGame();
-        }
+        var flow = StepController.FindFor(this);
+        if (flow != null) flow.ReturnToMainMenu();
     }
 }

@@ -4626,14 +4626,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6255191195bbff44a9715e481f6e1ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  dragSpeed: 1.4
-  movementSmoothness: 10
-  movementLimits: {x: 150, y: 10}
-  zoomSpeed: 10
-  mouseScrollSpeed: 100
-  zoomSmoothness: 10
-  minOrthographicSize: 32
-  maxOrthographicSize: 160
+  ground: {fileID: 927474801}
+  minOrthographicSize: 28
+  maxOrthographicSize: 68
+  scrollSensitivity: 1.6
+  zoomSmoothness: 12
+  dragThreshold: 20
 --- !u!114 &549915895
 MonoBehaviour:
   m_ObjectHideFlags: 0

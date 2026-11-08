@@ -13,6 +13,7 @@ public class TouchManager : MonoBehaviour
     private bool touchStartedOverUI = false;
     void Update()
     {
+        if (StepController.WorldInputBlocked) { isDragging = false; return; }
         if (Input.touchCount <= 0) return;
 
         Touch touch = Input.GetTouch(0);

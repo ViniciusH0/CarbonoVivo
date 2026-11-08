@@ -31,6 +31,9 @@ public class WinScreen : MonoBehaviour
         if (IsGameWon) return;
         
         IsGameWon = true;
+        transform.SetAsLastSibling();
+        var flow = StepController.FindFor(this);
+        if (flow != null) flow.SetResultScreen();
         if (winCanvas != null)
         {
             winCanvas.blocksRaycasts = true;
@@ -41,29 +44,14 @@ public class WinScreen : MonoBehaviour
 
     public void RestartGame()
     {
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        var flow = StepController.FindFor(this);
+        if (flow != null) flow.RestartGame();
     }
 
     public void ReturnToMainMenu()
     {
-        Time.timeScale = 1f;
-        var stepController = UnityEngine.Object.FindAnyObjectByType<StepController>();
-        if (stepController != null)
-        {
-            if (winCanvas != null)
-            {
-                winCanvas.alpha = 0f;
-                winCanvas.blocksRaycasts = false;
-                winCanvas.interactable = false;
-            }
-            IsGameWon = false;
-            stepController.ShowStep(0);
-        }
-        else
-        {
-            RestartGame();
-        }
+        var flow = StepController.FindFor(this);
+        if (flow != null) flow.ReturnToMainMenu();
     }
 
     private IEnumerator FadeCanvas(float targetAlpha)
