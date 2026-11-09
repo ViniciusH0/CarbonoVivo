@@ -6,6 +6,7 @@ using TMPro;
 public class BiodiversityUI : MonoBehaviour
 {
     public static BiodiversityUI Instance { get; private set; }
+    public bool TreesOnly { get; set; }
 
     [Header("UI Panels")]
     [SerializeField] private CanvasGroup catalogCanvas;
@@ -15,6 +16,7 @@ public class BiodiversityUI : MonoBehaviour
     [SerializeField] private TMP_FontAsset fontAsset;
 
     private bool isOpen = false;
+    public bool IsOpen => isOpen;
     private int lastToggleFrame = -1;
     private float lastToggleTime = -1f;
     private float refreshTimer = 0f;
@@ -27,13 +29,16 @@ public class BiodiversityUI : MonoBehaviour
         public Button actionButton;
         public Image actionButtonImage;
         public TextMeshProUGUI actionButtonText;
+        public TextMeshProUGUI effectText;
+        public Button curiosityButton;
+        public Button selectTreeButton;
     }
 
     private List<CardItemEntry> cardEntries = new List<CardItemEntry>();
 
     private void Awake()
     {
-        Instance = this;
+        if (!TreesOnly) Instance = this;
 
         if (catalogCanvas == null)
         {
@@ -58,7 +63,7 @@ public class BiodiversityUI : MonoBehaviour
             }
         }
 
-        if (toggleButton == null)
+        if (toggleButton == null && !TreesOnly)
         {
             var btnGo = GameObject.Find("BiodiversityButton");
             if (btnGo == null) btnGo = GameObject.Find("UI_Canvas/Game/BottomActionsBar/BiodiversityButton");
@@ -171,6 +176,7 @@ public class BiodiversityUI : MonoBehaviour
 
     public void OpenCatalog()
     {
+        if (!TreesOnly) EcologyHUD.Instance?.CloseCatalog();
         isOpen = true;
         transform.SetAsLastSibling();
         BuildOrRefreshCards();
@@ -207,7 +213,7 @@ public class BiodiversityUI : MonoBehaviour
         var bioMgr = GetBiodiversityManager();
         if (cardsContainer == null || bioMgr == null) return;
 
-        var catalog = bioMgr.speciesCatalog;
+        var catalog = VisibleCatalog(bioMgr);
         if (catalog == null || catalog.Count == 0) return;
 
         // Se os cards já foram criados e a quantidade confere, apenas atualiza estados
@@ -283,12 +289,25 @@ public class BiodiversityUI : MonoBehaviour
         infoVlg.childControlHeight = false;
 
         CreateText(infoGo.transform, $"<b>{species.commonName}</b> <size=80%><i>({species.scientificName})</i></size>", 17.5f, Color.white);
-        CreateText(infoGo.transform, $"<b>Efeito:</b> {species.gameplayEffect}", 13.5f, new Color(0.42f, 1f, 0.65f));
+        entry.effectText = CreateText(infoGo.transform, $"<b>Efeito:</b> {species.gameplayEffect}", 13.5f, new Color(0.42f, 1f, 0.65f));
         CreateText(infoGo.transform, species.ecologicalRole, 11.5f, new Color(0.85f, 0.9f, 0.95f));
 
         // Botão de Ação
+        Transform actionsParent = cardGo.transform;
+        if (EcologySimulation.Instance != null)
+        {
+            var column = new GameObject("Actions", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(LayoutElement));
+            column.transform.SetParent(cardGo.transform, false);
+            var columnLayout = column.GetComponent<VerticalLayoutGroup>();
+            columnLayout.spacing = 5; columnLayout.childControlHeight = true; columnLayout.childControlWidth = true;
+            columnLayout.childForceExpandHeight = false;
+            var columnSize = column.GetComponent<LayoutElement>();
+            columnSize.minWidth = columnSize.preferredWidth = 174;
+            columnSize.preferredHeight = 164;
+            actionsParent = column.transform;
+        }
         GameObject btnGo = new GameObject("ActionBtn");
-        btnGo.transform.SetParent(cardGo.transform, false);
+        btnGo.transform.SetParent(actionsParent, false);
         var btnLayout = btnGo.AddComponent<LayoutElement>();
         btnLayout.minWidth = 140;
         btnLayout.preferredWidth = 140;
@@ -300,12 +319,40 @@ public class BiodiversityUI : MonoBehaviour
 
         entry.actionButtonText = CreateButtonText(btnGo.transform, "", Color.white);
 
+        if (EcologySimulation.Instance != null)
+        {
+            entry.curiosityButton = CreateExtraAction(actionsParent, "Curiosidades", () =>
+                ForestStoryDirector.Instance?.ShowSpeciesCuriosity(species));
+            if (System.Array.Exists(EcologySimulation.Config.trees, t => t.id == species.id))
+                entry.selectTreeButton = CreateExtraAction(actionsParent, "Selecionar muda", () =>
+                {
+                    if (EcologySimulation.Instance.SelectTree(species.id))
+                    {
+                        if (TreesOnly) EcologyHUD.Instance?.CloseCatalog();
+                        else CloseCatalog();
+                    }
+                    else LumberjackManager.Instance?.ShowAlert("Desbloqueie a espécie para plantar esta muda.", 2f, Color.yellow);
+                });
+        }
+
         ApplyCardState(entry, currentCo2);
 
         entry.actionButton.onClick.AddListener(() =>
         {
             var bioMgr = GetBiodiversityManager();
             if (bioMgr == null) return;
+
+            if (entry.species.isUnlocked)
+            {
+                if (EcologySimulation.Instance != null)
+                {
+                    bioMgr.TryUpgrade(entry.species.id);
+                    UpdateExistingCardStates();
+                    return;
+                }
+                ForestStoryDirector.Instance?.ShowSpeciesCuriosity(entry.species);
+                return;
+            }
 
             if (!entry.species.isUnlocked)
             {
@@ -339,7 +386,7 @@ public class BiodiversityUI : MonoBehaviour
     {
         var bioMgr = GetBiodiversityManager();
         if (bioMgr == null) return;
-        var catalog = bioMgr.speciesCatalog;
+        var catalog = VisibleCatalog(bioMgr);
         if (catalog == null || catalog.Count == 0) return;
 
         if (cardEntries.Count != catalog.Count)
@@ -360,6 +407,9 @@ public class BiodiversityUI : MonoBehaviour
 
     private void ApplyCardState(CardItemEntry entry, float currentCo2)
     {
+        if (entry.effectText != null) entry.effectText.text = "<b>Efeito:</b> " + entry.species.gameplayEffect;
+        if (entry.curiosityButton != null) entry.curiosityButton.interactable = entry.species.isUnlocked;
+        if (entry.selectTreeButton != null) entry.selectTreeButton.interactable = entry.species.id == "guapuruvu" || entry.species.isUnlocked;
         var organicCard = entry.rootGo != null ? entry.rootGo.transform.Find("OrganicSurface")?.GetComponent<DTT.UI.ProceduralUI.RoundedImage>() : null;
         var organicBtn = entry.actionButton != null ? entry.actionButton.transform.Find("OrganicSurface")?.GetComponent<DTT.UI.ProceduralUI.RoundedImage>() : null;
 
@@ -369,9 +419,20 @@ public class BiodiversityUI : MonoBehaviour
         {
             entry.bgImage.color = new Color(0.12f, 0.28f, 0.16f, 0.95f);
             entry.actionButtonImage.color = new Color(0.2f, 0.55f, 0.3f);
-            entry.actionButton.interactable = false;
-            entry.actionButtonText.text = "<b>Ativo</b>\n<size=80%>(Lv 1)</size>";
+            entry.actionButton.interactable = ForestStoryDirector.Instance != null;
+            entry.actionButtonText.text = ForestStoryDirector.Instance != null
+                ? "<b>Curiosidades</b>\n<size=80%>(Espécie ativa)</size>"
+                : "<b>Ativo</b>\n<size=80%>(Lv 1)</size>";
             entry.actionButtonText.color = textColor;
+
+            if (EcologySimulation.Instance != null)
+            {
+                float cost = entry.species.level < 3 ? GetBiodiversityManager().UpgradeCost(entry.species) : 0;
+                entry.actionButton.interactable = entry.species.level < 3 && currentCo2 >= cost;
+                entry.actionButtonText.text = entry.species.level < 3
+                    ? $"Evoluir {entry.species.level} → {entry.species.level + 1}\n<size=80%>{cost:0.#} ppm</size>"
+                    : "Nível III\n<size=80%>Máximo</size>";
+            }
 
             if (organicCard != null) organicCard.color = GameSceneTestUITheme.Hex("DDE9D7");
             if (organicBtn != null) organicBtn.color = GameSceneTestUITheme.Muted;
@@ -400,6 +461,13 @@ public class BiodiversityUI : MonoBehaviour
         }
     }
 
+    private List<SpeciesData> VisibleCatalog(BiodiversityManager manager)
+    {
+        if (EcologySimulation.Instance == null) return manager.speciesCatalog;
+        return manager.speciesCatalog.FindAll(species =>
+            System.Array.Exists(EcologySimulation.Config.trees, tree => tree.id == species.id) == TreesOnly);
+    }
+
     private TextMeshProUGUI CreateText(Transform parent, string content, float fontSize, Color color)
     {
         GameObject textGo = new GameObject("Text");
@@ -415,6 +483,19 @@ public class BiodiversityUI : MonoBehaviour
         tmp.raycastTarget = false;
         tmp.textWrappingMode = TextWrappingModes.Normal;
         return tmp;
+    }
+
+    private Button CreateExtraAction(Transform parent, string label, UnityEngine.Events.UnityAction action)
+    {
+        var go = new GameObject(label, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
+        go.transform.SetParent(parent, false);
+        go.GetComponent<LayoutElement>().preferredHeight = 43;
+        var button = go.GetComponent<Button>();
+        GameSceneTestUITheme.Surface(go.transform, GameSceneTestUITheme.Green, 10);
+        var text = CreateButtonText(go.transform, label, GameSceneTestUITheme.Cream);
+        text.fontSize = 17;
+        button.onClick.AddListener(action);
+        return button;
     }
 
     private TextMeshProUGUI CreateButtonText(Transform parent, string content, Color color)

@@ -30,6 +30,12 @@ public class TreeSpawner : MonoBehaviour
     private List<GameObject> spawnedTrees = new List<GameObject>();
     private float timer = 0f;
     private int manualPlantedCount = 0;
+    [SerializeField, Min(1f)] private float minimumTreeSpacing = 6f;
+    private readonly Dictionary<int, Vector3> plantingReservations = new Dictionary<int, Vector3>();
+    private int nextReservationId;
+
+    public float MinimumTreeSpacing => EcologySimulation.Instance != null ? EcologySimulation.Config.treeSpacing : minimumTreeSpacing;
+    public int PendingPlantingCount => plantingReservations.Count;
 
     public IReadOnlyList<GameObject> SpawnedTrees => spawnedTrees;
 
@@ -50,23 +56,58 @@ public class TreeSpawner : MonoBehaviour
 
     public bool TryFindValidSpawnPosition(bool visibleInCamera, out Vector3 validPos)
     {
-        validPos = visibleInCamera ? GetVisiblePositionInCamera() : GetRandomPositionOnPlane();
-        int maxAttempts = 30;
-        int attempts = 0;
-
-        while (IsInsideAnyBlocker(validPos) && attempts < maxAttempts)
+        for (int attempt = 0; attempt < 60; attempt++)
         {
-            validPos = visibleInCamera ? GetVisiblePositionInCamera() : GetRandomPositionOnPlane();
-            attempts++;
+            validPos = visibleInCamera && attempt < 30 ? GetVisiblePositionInCamera() : GetRandomPositionOnPlane();
+            if (IsPlantingPositionAvailable(validPos)) return true;
         }
-
-        return attempts < maxAttempts;
+        validPos = default;
+        return false;
     }
 
-    public GameObject SpawnTreeFromDrone(Vector3 spawnPos)
+    public bool IsPlantingPositionAvailable(Vector3 position, int ownReservation = 0)
     {
-        manualPlantedCount++;
-        return CreateTreeAtPosition(spawnPos, true);
+        if (plane == null || treePrefabs == null || treePrefabs.Length == 0 ||
+            float.IsNaN(position.x) || float.IsNaN(position.z) || float.IsInfinity(position.x) || float.IsInfinity(position.z)) return false;
+        var bounds = plane.bounds;
+        if (position.x < bounds.min.x || position.x > bounds.max.x || position.z < bounds.min.z || position.z > bounds.max.z ||
+            IsInsideAnyBlocker(position)) return false;
+        float spacingSquared = MinimumTreeSpacing * MinimumTreeSpacing;
+        foreach (var tree in spawnedTrees)
+            if (tree != null && HorizontalDistanceSquared(position, tree.transform.position) < spacingSquared) return false;
+        foreach (var reservation in plantingReservations)
+            if (reservation.Key != ownReservation && HorizontalDistanceSquared(position, reservation.Value) < spacingSquared) return false;
+        return true;
+    }
+
+    private static float HorizontalDistanceSquared(Vector3 a, Vector3 b)
+    {
+        float x = a.x - b.x, z = a.z - b.z;
+        return x * x + z * z;
+    }
+
+    public bool TryReservePlantingPosition(Vector3 position, out int reservationId)
+    {
+        reservationId = 0;
+        if (!IsPlantingPositionAvailable(position)) return false;
+        reservationId = ++nextReservationId;
+        plantingReservations.Add(reservationId, position);
+        return true;
+    }
+
+    public void ReleasePlantingReservation(int reservationId) { plantingReservations.Remove(reservationId); }
+
+    public GameObject SpawnTreeFromDrone(Vector3 spawnPos, string speciesId = "guapuruvu", int reservationId = 0)
+    {
+        try
+        {
+            if (reservationId != 0 && (!plantingReservations.TryGetValue(reservationId, out var position) ||
+                HorizontalDistanceSquared(position, spawnPos) > 0.001f)) return null;
+            var tree = CreateTreeAtPosition(spawnPos, true, speciesId, reservationId);
+            if (tree != null) manualPlantedCount++;
+            return tree;
+        }
+        finally { ReleasePlantingReservation(reservationId); }
     }
 
     public GameObject ForceSpawnSingleTree(bool isManual = false)
@@ -74,46 +115,46 @@ public class TreeSpawner : MonoBehaviour
         Vector3 spawnPos;
         if (TryFindValidSpawnPosition(isManual, out spawnPos))
         {
-            if (isManual) manualPlantedCount++;
-            return CreateTreeAtPosition(spawnPos, true);
+            var tree = CreateTreeAtPosition(spawnPos, true);
+            if (tree != null && isManual) manualPlantedCount++;
+            return tree;
         }
 
         return null;
     }
 
-    public GameObject ForceSpawnAt(Vector3 spawnPos, bool isManual = true)
+    public GameObject ForceSpawnAt(Vector3 spawnPos, bool isManual = true, string speciesId = "guapuruvu")
     {
-        if (IsInsideAnyBlocker(spawnPos)) return null;
-        if (isManual) manualPlantedCount++;
-        return CreateTreeAtPosition(spawnPos, true);
+        var tree = CreateTreeAtPosition(spawnPos, true, speciesId);
+        if (tree != null && isManual) manualPlantedCount++;
+        return tree;
     }
 
     private void SpawnTree()
     {
-        Vector3 spawnPos;
-        int maxAttempts = 30;
-        int attempts = 0;
-
-        do
-        {
-            spawnPos = GetRandomPositionOnPlane();
-            attempts++;
-        } 
-        while (IsInsideAnyBlocker(spawnPos) && attempts < maxAttempts);
-
-        if (attempts < maxAttempts)
-        {
+        if (TryFindValidSpawnPosition(false, out var spawnPos))
             CreateTreeAtPosition(spawnPos, false);
-        }
     }
 
-    private GameObject CreateTreeAtPosition(Vector3 spawnPos, bool withEffect)
+    private GameObject CreateTreeAtPosition(Vector3 spawnPos, bool withEffect, string speciesId = "guapuruvu", int reservationId = 0)
     {
-        if (treePrefabs == null || treePrefabs.Length == 0) return null;
+        if (!IsPlantingPositionAvailable(spawnPos, reservationId)) return null;
 
         GameObject prefabToSpawn = treePrefabs[Random.Range(0, treePrefabs.Length)];
+        if (EcologySimulation.Instance != null)
+        {
+            int slot = System.Array.FindIndex(EcologySimulation.Config.trees, tree => tree.id == speciesId);
+            prefabToSpawn = treePrefabs[Mathf.Clamp(slot, 0, treePrefabs.Length - 1)];
+        }
         Quaternion finalRotation = Quaternion.Euler(rotationOffset);
         GameObject newTree = Instantiate(prefabToSpawn, spawnPos, finalRotation, transform);
+        if (EcologySimulation.Instance != null)
+        {
+            var identity = newTree.AddComponent<ForestTreeSpecies>();
+            identity.speciesId = speciesId;
+            identity.growthProgress = withEffect ? 0 : 1;
+            newTree.name = EcologySimulation.Config.Tree(speciesId).name;
+        }
 
         float randomScale = Random.Range(minScaleMultiplier, maxScaleMultiplier);
         Vector3 targetScale = Vector3.one * randomScale;
@@ -158,11 +199,17 @@ public class TreeSpawner : MonoBehaviour
         float duration = 10.0f; // Ciclo de 10 segundos até atingir o tamanho total
         float elapsed = 0f;
 
-        while (elapsed < duration)
+        var identity = tree != null ? tree.GetComponent<ForestTreeSpecies>() : null;
+        float progress = 0;
+        while (progress < 1)
         {
             if (tree == null) yield break;
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / duration);
+            progress = identity != null
+                ? Mathf.Clamp01(progress + Time.deltaTime / Mathf.Max(0.01f, identity.Balance.growth))
+                : Mathf.Clamp01(elapsed / duration);
+            if (identity != null) identity.growthProgress = progress;
+            float t = progress;
 
             // Crescimento orgânico progressivo de 8% até 100% da escala final ao longo de 10 segundos
             float smoothT = Mathf.SmoothStep(0.08f, 1.0f, t);

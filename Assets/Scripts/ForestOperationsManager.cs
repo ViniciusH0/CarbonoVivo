@@ -17,6 +17,7 @@ public class ForestOperationsManager : MonoBehaviour
 
     private readonly List<ScientistAgent> activeScientists = new List<ScientistAgent>();
     private readonly List<PlantingDroneAgent> activeDrones = new List<PlantingDroneAgent>();
+    public int ActiveDroneCount => activeDrones.Count;
 
     public static Vector3 GetBaseRoofDronePad()
     {
@@ -77,18 +78,20 @@ public class ForestOperationsManager : MonoBehaviour
     /// <summary>
     /// Despacha um drone da base principal para ir até targetPos, descer, plantar a semente e voltar à base.
     /// </summary>
-    public void DispatchPlantingDrone(Vector3 targetPos, System.Action<GameObject> onPlantedCallback = null)
+    public bool DispatchPlantingDrone(Vector3 targetPos, System.Action<GameObject> onPlantedCallback = null, string speciesId = "guapuruvu")
     {
+        if (TreeSpawner.Instance == null || !TreeSpawner.Instance.TryReservePlantingPosition(targetPos, out int reservationId)) return false;
         Vector3 padPos = GetBaseRoofDronePad() + new Vector3(Random.Range(-1.5f, 1.5f), 0f, Random.Range(-1.5f, 1.5f));
         GameObject droneObj = CreateDroneVisual(padPos);
         PlantingDroneAgent drone = droneObj.AddComponent<PlantingDroneAgent>();
-        drone.StartMission(targetPos, droneFlightSpeed, droneVerticalSpeed, droneCruiseHeight, onPlantedCallback);
+        drone.StartMission(targetPos, droneFlightSpeed, droneVerticalSpeed, droneCruiseHeight, onPlantedCallback, speciesId, reservationId);
         activeDrones.Add(drone);
 
         if (BioacousticAudioManager.Instance != null)
         {
             BioacousticAudioManager.Instance.PlayDroneLaunchSound();
         }
+        return true;
     }
 
     public GameObject GetUnvisitedOrRandomTree(ScientistAgent requester, GameObject lastVisited)
@@ -285,6 +288,9 @@ public class DroneRotorSpinner : MonoBehaviour
 /// </summary>
 public class PlantingDroneAgent : MonoBehaviour
 {
+    private TreeSpawner reservationSpawner;
+    private int reservationId;
+    private string plantingSpeciesId = "guapuruvu";
     private Vector3 targetGroundPos;
     private float flightSpeed = 34f;
     private float verticalSpeed = 16f;
@@ -292,13 +298,25 @@ public class PlantingDroneAgent : MonoBehaviour
     private System.Action<GameObject> onPlantedCallback;
     private GameObject landingMarker;
 
-    public void StartMission(Vector3 targetPos, float hSpeed, float vSpeed, float height, System.Action<GameObject> callback)
+    public void StartMission(Vector3 targetPos, float hSpeed, float vSpeed, float height, System.Action<GameObject> callback, string speciesId = "guapuruvu", int plantingReservation = 0)
     {
+        reservationSpawner = TreeSpawner.Instance;
+        reservationId = plantingReservation;
+        plantingSpeciesId = speciesId;
         targetGroundPos = targetPos;
         flightSpeed = hSpeed;
         verticalSpeed = vSpeed;
         cruiseHeight = height;
         onPlantedCallback = callback;
+
+        if (reservationSpawner == null || (reservationId == 0 && !reservationSpawner.TryReservePlantingPosition(targetPos, out reservationId)))
+        {
+            var rejected = onPlantedCallback;
+            onPlantedCallback = null;
+            rejected?.Invoke(null);
+            Destroy(gameObject);
+            return;
+        }
 
         CreateLandingMarker(targetPos);
         StartCoroutine(DroneMissionRoutine());
@@ -368,17 +386,20 @@ public class PlantingDroneAgent : MonoBehaviour
         if (landingMarker != null) Destroy(landingMarker);
 
         GameObject plantedTree = null;
-        if (TreeSpawner.Instance != null)
+        if (reservationSpawner != null)
         {
-            plantedTree = TreeSpawner.Instance.SpawnTreeFromDrone(targetGroundPos);
+            plantedTree = reservationSpawner.SpawnTreeFromDrone(targetGroundPos, plantingSpeciesId, reservationId);
         }
+        reservationId = 0;
 
         if (BioacousticAudioManager.Instance != null)
         {
             BioacousticAudioManager.Instance.PlayPlantSound();
         }
 
-        onPlantedCallback?.Invoke(plantedTree);
+        var completed = onPlantedCallback;
+        onPlantedCallback = null;
+        completed?.Invoke(plantedTree);
 
         yield return new WaitForSeconds(0.2f);
 
@@ -436,7 +457,24 @@ public class PlantingDroneAgent : MonoBehaviour
 
     private void OnDestroy()
     {
+        CancelPlanting();
         if (landingMarker != null) Destroy(landingMarker);
+    }
+
+    private void OnDisable()
+    {
+        StopAllCoroutines();
+        CancelPlanting();
+        if (landingMarker != null) Destroy(landingMarker);
+    }
+
+    private void CancelPlanting()
+    {
+        if (reservationSpawner != null) reservationSpawner.ReleasePlantingReservation(reservationId);
+        reservationId = 0;
+        var cancelled = onPlantedCallback;
+        onPlantedCallback = null;
+        cancelled?.Invoke(null);
     }
 }
 

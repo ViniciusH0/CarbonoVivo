@@ -117,10 +117,11 @@ public class BiodiversityManager : MonoBehaviour
     private void Update()
     {
         // Gralha-azul e Mico-leão-dourado: brotamento natural sem toque manual
-        if (IsUnlocked("gralha_mico"))
+        if (EcologySimulation.Instance != null ? IsUnlocked("mico") : IsUnlocked("gralha_mico"))
         {
             seedTimer += Time.deltaTime;
-            if (seedTimer >= seedDispersalInterval)
+            float interval = EcologySimulation.Instance != null ? EcologySimulation.Instance.MicoInterval : seedDispersalInterval;
+            if (seedTimer >= interval)
             {
                 seedTimer = 0f;
                 PerformAutoSeedDispersal();
@@ -130,6 +131,7 @@ public class BiodiversityManager : MonoBehaviour
 
     public bool TryUnlock(string speciesId)
     {
+        if (EcologySimulation.Instance != null && StepController.WorldInputBlocked) return false;
         SpeciesData species = speciesCatalog.Find(s => s.id == speciesId);
         if (species == null || species.isUnlocked) return false;
 
@@ -182,9 +184,9 @@ public class BiodiversityManager : MonoBehaviour
         var spawner = UnityEngine.Object.FindAnyObjectByType<TreeSpawner>();
         if (spawner != null)
         {
-            spawner.ForceSpawnSingleTree();
+            if (spawner.ForceSpawnSingleTree() == null) return;
             var im = UnityEngine.Object.FindAnyObjectByType<IndicatorManager>();
-            if (im != null) im.ModifyForestHealth(0.2f);
+            if (im != null) im.ModifyForestHealth(EcologySimulation.Instance != null ? EcologySimulation.Config.seedForestGain / 10f : 0.2f);
 
             Debug.Log("[Biodiversity] Gralha-azul/Mico dispersou uma nova semente nativa!");
         }
@@ -198,6 +200,7 @@ public class BiodiversityManager : MonoBehaviour
 
     public float GetCarbonSequestrationMultiplier()
     {
+        if (EcologySimulation.Instance != null) return EcologySimulation.Instance.DiversityMultiplier;
         float mult = 1.0f;
         if (IsUnlocked("araucaria")) mult += 0.5f;
         if (IsUnlocked("besouro_rola_bosta")) mult += 0.35f;
@@ -207,6 +210,7 @@ public class BiodiversityManager : MonoBehaviour
 
     public float GetWaterRetentionBonus()
     {
+        if (EcologySimulation.Instance != null) return Mathf.Min(EcologySimulation.Config.passiveCap, EcologySimulation.Instance.SpeciesBonus("araucaria")) / 100f;
         float bonus = 0f;
         if (IsUnlocked("araucaria")) bonus += 0.4f;
         if (IsUnlocked("besouro_rola_bosta")) bonus += 0.2f;
@@ -217,6 +221,69 @@ public class BiodiversityManager : MonoBehaviour
     {
         if (!IsUnlocked("tamandua_mirim")) return false;
         // 50% de chance de afugentar automaticamente
-        return UnityEngine.Random.value < 0.5f;
+        float chance = EcologySimulation.Instance != null ? EcologySimulation.Instance.SpeciesBonus("tamandua_mirim") / 100f : 0.5f;
+        return UnityEngine.Random.value < chance;
+    }
+
+    public void ConfigureEcologyCatalog()
+    {
+        var combined = speciesCatalog.Find(s => s.id == "gralha_mico");
+        bool wasCombinedUnlocked = combined != null && combined.isUnlocked;
+        speciesCatalog.RemoveAll(s => s.id == "gralha_mico");
+        AddSpecies("mico", "Mico-leão-dourado", "Leontopithecus rosalia", "A dispersão de sementes ajuda a floresta a se renovar.");
+        AddSpecies("gralha", "Gralha-azul", "Cyanocorax caeruleus", "Transporta e armazena sementes como os pinhões da araucária.");
+        AddSpecies("embauba", "Embaúba", "Cecropia pachystachya", "Espécie pioneira que participa da regeneração da vegetação.");
+        AddSpecies("jequitiba", "Jequitibá-rosa", "Cariniana legalis", "Árvore nativa da Mata Atlântica de grande porte.");
+        if (wasCombinedUnlocked)
+            foreach (var id in new[] { "mico", "gralha" })
+            { var s = speciesCatalog.Find(item => item.id == id); s.isUnlocked = true; s.level = 1; }
+        RefreshEcologySettings();
+    }
+
+    private void AddSpecies(string id, string commonName, string scientificName, string role)
+    {
+        if (speciesCatalog.Exists(s => s.id == id)) return;
+        speciesCatalog.Add(new SpeciesData { id = id, commonName = commonName, scientificName = scientificName, ecologicalRole = role });
+    }
+
+    public float UpgradeCost(SpeciesData species) => species.level >= 3 ? 0 :
+        species.level == 1 ? EcologySimulation.Config.Species(species.id).upgradeII : EcologySimulation.Config.Species(species.id).upgradeIII;
+
+    public bool TryUpgrade(string id)
+    {
+        if (EcologySimulation.Instance == null || StepController.WorldInputBlocked) return false;
+        var species = speciesCatalog.Find(s => s.id == id);
+        if (species == null || !species.isUnlocked || species.level >= 3 || CarbonManager1.Instance == null) return false;
+        if (!CarbonManager1.Instance.SpendCarbon(UpgradeCost(species))) return false;
+        species.level++;
+        RefreshEcologySettings();
+        return true;
+    }
+
+    public void RefreshEcologySettings()
+    {
+        if (EcologySimulation.Instance == null) return;
+        var config = EcologySimulation.Config;
+        foreach (var s in speciesCatalog)
+        {
+            var setting = config.Species(s.id);
+            if (setting == null) continue;
+            s.costInPpm = setting.unlockCost;
+            s.level = s.isUnlocked ? Mathf.Clamp(s.level, 1, 3) : 0;
+            float bonus = setting.Bonus(Mathf.Max(1, s.level));
+            switch (s.id)
+            {
+                case "mico": s.gameplayEffect = $"Brotamento gratuito a cada {config.micoInterval * (1 - bonus / 100f):0.#} s. Redução do intervalo: {bonus:0.#}%. Novas árvores entram na manutenção."; break;
+                case "gralha": s.gameplayEffect = $"+{bonus:0.#}% de captura com diversidade de {config.diversitySpecies:0} espécies adultas."; break;
+                case "besouro_rola_bosta": s.gameplayEffect = $"Reduz a manutenção de Recursos em {bonus:0.#}%."; break;
+                case "tamandua_mirim": s.gameplayEffect = $"{bonus:0.#}% de chance de afastar uma invasão automaticamente (bônus do jogo)."; break;
+                default:
+                    var tree = config.Tree(s.id);
+                    string ability = s.id == "araucaria" ? $"-{bonus:0.#}% de consumo de água" : $"+{bonus:0.#}% de captura desta espécie";
+                    s.gameplayEffect = $"Muda: {tree.production:0.#}% de captura base; cresce em {tree.growth:0.#} s. Habilidade: {ability}.";
+                    break;
+            }
+        }
+        BiodiversityUI.Instance?.UpdateExistingCardStates();
     }
 }

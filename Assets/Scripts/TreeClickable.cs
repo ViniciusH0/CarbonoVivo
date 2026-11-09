@@ -36,7 +36,7 @@ public class TreeClickable : MonoBehaviour
 
         // Bonificação ativa por toque (Loop de Idle/Clicker Zen)
         float bonus = 1.0f;
-        if (BiodiversityManager.Instance != null && BiodiversityManager.Instance.IsUnlocked("guapuruvu"))
+        if (EcologySimulation.Instance == null && BiodiversityManager.Instance != null && BiodiversityManager.Instance.IsUnlocked("guapuruvu"))
         {
             bonus += 1.0f;
         }

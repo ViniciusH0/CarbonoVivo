@@ -55,6 +55,9 @@ public class GameDebugManager : MonoBehaviour
     public void ApplyAll()
     {
         if (Config == null) return;
+        Config.NormalizeEcology();
+        BiodiversityManager.Instance?.RefreshEcologySettings();
+        QuestionManager.Instance?.RefreshChoicePreview();
 
         // 1. Carbono
         if (CarbonManager1.Instance != null)
@@ -111,6 +114,16 @@ public class GameDebugManager : MonoBehaviour
         OnConfigChanged?.Invoke();
     }
 
+    public void UpdateEcologySetting()
+    {
+        Config.NormalizeEcology();
+        BiodiversityManager.Instance?.RefreshEcologySettings();
+        InteractivePlanting.Instance?.UpdateButtonUI();
+        QuestionManager.Instance?.RefreshChoicePreview();
+        Config.Save();
+        OnConfigChanged?.Invoke();
+    }
+
     // --- Setters de Game Design ---
 
     public void SetDecisionInterval(float seconds)
@@ -141,6 +154,7 @@ public class GameDebugManager : MonoBehaviour
         if (InteractivePlanting.Instance != null)
         {
             InteractivePlanting.Instance.TreeCost = Config.treePlantCost;
+            InteractivePlanting.Instance.UpdateButtonUI();
         }
         Config.Save();
         OnConfigChanged?.Invoke();

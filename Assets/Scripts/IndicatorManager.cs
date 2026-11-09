@@ -75,7 +75,11 @@ public class IndicatorManager : MonoBehaviour
         gameTimer += Time.deltaTime;
 
         // Não aplica decaimento durante o tutorial ou período de carência inicial
-        if (gameTimer > initialGracePeriod)
+        if (EcologySimulation.Instance != null)
+        {
+            EcologySimulation.Instance.ApplyEconomy(this, Time.deltaTime);
+        }
+        else if (gameTimer > initialGracePeriod)
         {
             ApplyInterdependence();
         }

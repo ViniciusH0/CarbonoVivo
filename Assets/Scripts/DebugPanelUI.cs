@@ -20,6 +20,9 @@ public class DebugPanelUI : MonoBehaviour
     private GameObject tabContentDesign;
     private GameObject tabContentVisual;
     private GameObject tabContentActions;
+    private GameObject tabContentEcology;
+    private CanvasGroup tabGroupEcology;
+    private Image tabImgEcology;
     private CanvasGroup tabGroupDesign;
     private CanvasGroup tabGroupVisual;
     private CanvasGroup tabGroupActions;
@@ -30,6 +33,8 @@ public class DebugPanelUI : MonoBehaviour
     private Image tabImgVisual;
     private Image tabImgActions;
     private int currentTab = 0;
+    private readonly List<System.Action> balanceSync = new List<System.Action>();
+    private float nextBalanceSync;
 
     // Sliders & Readout Texts
     private Slider sliderDecisionInterval;
@@ -132,6 +137,11 @@ public class DebugPanelUI : MonoBehaviour
 
     private void Update()
     {
+        if (isOpen && Time.unscaledTime >= nextBalanceSync)
+        {
+            nextBalanceSync = Time.unscaledTime + 0.25f;
+            foreach (var sync in balanceSync) sync();
+        }
         // Se o painel estiver aberto e o ciclo estiver rodando, atualiza o slider de horário suavemente
         if (isOpen && DayNightCycle.Instance != null && !DayNightCycle.Instance.PauseCycle)
         {
@@ -397,8 +407,9 @@ public class DebugPanelUI : MonoBehaviour
         hlg.childForceExpandHeight = true;
 
         tabBtnDesign = CreateTabButton(tabsBarGo.transform, "DESIGN", () => SwitchTab(0), out tabImgDesign);
-        tabBtnVisual = CreateTabButton(tabsBarGo.transform, "VISUAL & CLIMA", () => SwitchTab(1), out tabImgVisual);
-        tabBtnActions = CreateTabButton(tabsBarGo.transform, "ACOES & CHEATS", () => SwitchTab(2), out tabImgActions);
+        CreateTabButton(tabsBarGo.transform, "ECOLOGIA", () => SwitchTab(3), out tabImgEcology);
+        tabBtnVisual = CreateTabButton(tabsBarGo.transform, "VISUAL", () => SwitchTab(1), out tabImgVisual);
+        tabBtnActions = CreateTabButton(tabsBarGo.transform, "AÇÕES", () => SwitchTab(2), out tabImgActions);
 
         // Container de Conteúdo com Scroll
         GameObject contentContainerGo = new GameObject("TabContentArea");
@@ -420,6 +431,8 @@ public class DebugPanelUI : MonoBehaviour
         // 3. Tab Actions
         tabContentActions = CreateScrollTab(contentContainerGo.transform, "Content_Actions", out Transform actionsContent, out tabGroupActions);
         BuildActionsTab(actionsContent);
+        tabContentEcology = CreateScrollTab(contentContainerGo.transform, "Content_Ecology", out Transform ecologyContent, out tabGroupEcology);
+        BuildEcologyControls(ecologyContent);
 
         // Footer Bar (Salvar, Resetar, Toast)
         CreateFooterBar();
@@ -523,14 +536,16 @@ public class DebugPanelUI : MonoBehaviour
         SetTabGroup(tabGroupDesign, index == 0);
         SetTabGroup(tabGroupVisual, index == 1);
         SetTabGroup(tabGroupActions, index == 2);
+        SetTabGroup(tabGroupEcology, index == 3);
 
         if (tabImgDesign != null) tabImgDesign.color = (index == 0) ? ACTIVE_TAB_COLOR : INACTIVE_TAB_COLOR;
         if (tabImgVisual != null) tabImgVisual.color = (index == 1) ? ACTIVE_TAB_COLOR : INACTIVE_TAB_COLOR;
         if (tabImgActions != null) tabImgActions.color = (index == 2) ? ACTIVE_TAB_COLOR : INACTIVE_TAB_COLOR;
+        if (tabImgEcology != null) tabImgEcology.color = (index == 3) ? ACTIVE_TAB_COLOR : INACTIVE_TAB_COLOR;
 
         Canvas.ForceUpdateCanvases();
 
-        GameObject activeObj = (index == 0) ? tabContentDesign : (index == 1) ? tabContentVisual : tabContentActions;
+        GameObject activeObj = index == 3 ? tabContentEcology : (index == 0) ? tabContentDesign : (index == 1) ? tabContentVisual : tabContentActions;
         if (activeObj != null)
         {
             var contentT = activeObj.transform.Find("Viewport/Content") as RectTransform;
@@ -627,6 +642,107 @@ public class DebugPanelUI : MonoBehaviour
         );
     }
 
+    private void BuildEcologyControls(Transform parent)
+    {
+        CreateSectionHeader(parent, "ECOLOGIA · FILTRAR AJUSTES");
+        var searchGo = new GameObject("BalanceSearch", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+        searchGo.transform.SetParent(parent, false);
+        searchGo.GetComponent<Image>().color = ROW_BG_COLOR;
+        searchGo.GetComponent<LayoutElement>().preferredHeight = 46;
+        var search = searchGo.AddComponent<TMP_InputField>();
+        var textGo = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+        textGo.transform.SetParent(searchGo.transform, false);
+        var rect = textGo.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
+        rect.offsetMin = new Vector2(14, 4); rect.offsetMax = new Vector2(-14, -4);
+        var text = textGo.GetComponent<TextMeshProUGUI>();
+        text.font = fontAsset; text.fontSize = 17; text.color = Color.white;
+        search.textViewport = rect; search.textComponent = text;
+        var hintGo = Instantiate(textGo, searchGo.transform);
+        var hint = hintGo.GetComponent<TextMeshProUGUI>();
+        hint.text = "Buscar: mico, árvore, água, recarga, impacto...";
+        hint.color = new Color(.65f, .75f, .7f);
+        search.placeholder = hint;
+        var rows = new List<(GameObject row, string keywords)>();
+        var sections = new List<(GameObject header, int start, int count)>();
+        System.Func<object> getRoot = () => GameDebugManager.Instance.Config.ecology;
+        var economyHeader = CreateSectionHeader(parent, "ECONOMIA, IMPACTOS E DIVERSIDADE");
+        BuildBalanceFields(parent, getRoot, "Economia impactos diversidade", rows);
+        sections.Add((economyHeader, 0, rows.Count));
+        foreach (var fieldName in new[] { "trees", "species", "abilities" })
+        {
+            var arrayField = typeof(EcologyBalanceConfig).GetField(fieldName);
+            var array = (System.Array)arrayField.GetValue(getRoot());
+            for (int index = 0; index < array.Length; index++)
+            {
+                int slot = index;
+                System.Func<object> getItem = () => ((System.Array)arrayField.GetValue(getRoot())).GetValue(slot);
+                string name = (string)getItem().GetType().GetField("name").GetValue(getItem());
+                string group = fieldName == "trees" ? "ÁRVORE" : fieldName == "species" ? "ESPÉCIE" : "HABILIDADE";
+                var header = CreateSectionHeader(parent, group + " · " + name);
+                int start = rows.Count;
+                BuildBalanceFields(parent, getItem, group + " " + name, rows);
+                if (fieldName == "species")
+                {
+                    string id = (string)getItem().GetType().GetField("id").GetValue(getItem());
+                    CreateSliderRow(parent, "Nível atual (0 = bloqueada)", 0, 3, 0, true, level =>
+                    {
+                        var species = BiodiversityManager.Instance?.speciesCatalog.Find(s => s.id == id);
+                        if (species == null || EcologySimulation.Instance == null) return;
+                        species.level = Mathf.RoundToInt(level); species.isUnlocked = species.level > 0;
+                        if (!species.isUnlocked && EcologySimulation.Instance.SelectedTreeId == id) EcologySimulation.Instance.SelectTree("guapuruvu");
+                        BiodiversityManager.Instance.RefreshEcologySettings();
+                        SyncUIWithConfig();
+                    }, out var levelText, out var levelSlider);
+                    levelSlider.name = "SpeciesLevel_" + id;
+                    rows.Add((levelSlider.transform.parent.gameObject, group + " " + name + " nível"));
+                    balanceSync.Add(() =>
+                    {
+                        int level = BiodiversityManager.Instance?.speciesCatalog.Find(s => s.id == id)?.level ?? 0;
+                        levelSlider.SetValueWithoutNotify(level); levelText.text = level == 0 ? "Bloqueada" : "Nível " + level;
+                    });
+                }
+                sections.Add((header, start, rows.Count - start));
+            }
+        }
+        search.onValueChanged.AddListener(query =>
+        {
+            foreach (var row in rows)
+                row.row.SetActive(string.IsNullOrWhiteSpace(query) || System.Globalization.CultureInfo.CurrentCulture.CompareInfo.IndexOf(
+                    row.keywords, query.Trim(), System.Globalization.CompareOptions.IgnoreCase | System.Globalization.CompareOptions.IgnoreNonSpace) >= 0);
+            foreach (var section in sections)
+                section.header.SetActive(rows.GetRange(section.start, section.count).Exists(row => row.row.activeSelf));
+            Canvas.ForceUpdateCanvases();
+            var scroll = parent.GetComponentInParent<ScrollRect>();
+            if (scroll != null) scroll.verticalNormalizedPosition = 1;
+        });
+    }
+
+    private void BuildBalanceFields(Transform parent, System.Func<object> owner, string group,
+        List<(GameObject row, string keywords)> rows)
+    {
+        foreach (var field in owner().GetType().GetFields())
+        {
+            if (owner() is AbilityBalance ability && ability.id == "agua" && field.Name == "duration") continue;
+            var setting = System.Attribute.GetCustomAttribute(field, typeof(BalanceValueAttribute)) as BalanceValueAttribute;
+            if (setting == null) continue;
+            CreateSliderRow(parent, setting.label, setting.min, setting.max, (float)field.GetValue(owner()), false,
+                value =>
+                {
+                    field.SetValue(owner(), value);
+                    GameDebugManager.Instance.UpdateEcologySetting();
+                }, out var valueText, out var slider);
+            slider.gameObject.name = "Balance_" + group + "_" + field.Name;
+            rows.Add((slider.transform.parent.gameObject, group + " " + setting.label));
+            balanceSync.Add(() =>
+            {
+                float value = (float)field.GetValue(owner());
+                slider.SetValueWithoutNotify(value);
+                valueText.text = $"{value:0.##} {setting.unit}";
+            });
+        }
+    }
+
     private void BuildVisualTab(Transform parent)
     {
         CreateSectionHeader(parent, "ILUMINAÇÃO E CICLO DIA / NOITE");
@@ -705,6 +821,12 @@ public class DebugPanelUI : MonoBehaviour
 
     private void BuildActionsTab(Transform parent)
     {
+        CreateSectionHeader(parent, "TESTES DE HABILIDADES");
+        CreateActionButton(parent, "RECARREGAR HABILIDADES", ACCENT_GREEN, () =>
+        {
+            EcologySimulation.Instance?.ResetAbilities();
+            ShowSaveToast("Habilidades prontas para um novo teste.");
+        });
         CreateSectionHeader(parent, "CONTROLE DE CLIMA E EVENTOS");
 
         CreateActionButton(parent, "INICIAR CHUVA TROPICAL", new Color(0.2f, 0.45f, 0.7f), () => {
@@ -847,7 +969,7 @@ public class DebugPanelUI : MonoBehaviour
         rTmp.alignment = TextAlignmentOptions.Center;
     }
 
-    private void CreateSectionHeader(Transform parent, string title)
+    private GameObject CreateSectionHeader(Transform parent, string title)
     {
         GameObject headerGo = new GameObject("Section_" + title);
         headerGo.transform.SetParent(parent, false);
@@ -883,6 +1005,7 @@ public class DebugPanelUI : MonoBehaviour
         tmp.color = ACCENT_GREEN;
         tmp.alignment = TextAlignmentOptions.MidlineLeft;
         tmp.textWrappingMode = TextWrappingModes.NoWrap;
+        return headerGo;
     }
 
     private void CreateSliderRow(Transform parent, string label, float min, float max, float currentVal, bool wholeNumbers,
@@ -1142,6 +1265,7 @@ public class DebugPanelUI : MonoBehaviour
     public void SyncUIWithConfig()
     {
         var config = GameDebugManager.Instance != null ? GameDebugManager.Instance.Config : null;
+        if (config != null) foreach (var sync in balanceSync) sync();
         if (config == null) return;
 
         // Design

@@ -263,8 +263,9 @@ public class ForestFireManager : MonoBehaviour
 
         if (IndicatorManager.Instance != null)
         {
-            IndicatorManager.Instance.ModifyForestHealth(-0.6f);
-            IndicatorManager.Instance.ModifyWater(-0.3f);
+            float protection = EcologySimulation.Instance != null ? EcologySimulation.Instance.FireDamageMultiplier : 1f;
+            IndicatorManager.Instance.ModifyForestHealth(-0.6f * protection);
+            IndicatorManager.Instance.ModifyWater(-0.3f * protection);
         }
 
         if (TreeSpawner.Instance != null && tree != null)
@@ -589,7 +590,7 @@ public class BurningTreeEffect : MonoBehaviour
             em.rateOverTime = 38f * Mathf.Clamp(fireHP, 0.2f, 1f);
         }
 
-        burnTimer += Time.deltaTime;
+        burnTimer += Time.deltaTime * (EcologySimulation.Instance != null ? EcologySimulation.Instance.FireDamageMultiplier : 1f);
         if (burnTimer >= maxBurnDuration)
         {
             // Fogo consumiu a árvore

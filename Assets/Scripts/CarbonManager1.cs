@@ -220,7 +220,9 @@ public class CarbonManager1 : MonoBehaviour
             firePenalty = burning * 0.30f;
         }
 
-        currentGenerationRate = Mathf.Max(0f, (treeCount * generationPower * bioMultiplier * waterFactor * healthFactor * weatherFactor) - firePenalty);
+        float productionWeight = EcologySimulation.Instance != null ? EcologySimulation.Instance.ProductionWeight : treeCount;
+        float abilityMultiplier = EcologySimulation.Instance != null ? EcologySimulation.Instance.ActiveProductionMultiplier : 1f;
+        currentGenerationRate = Mathf.Max(0f, (productionWeight * generationPower * bioMultiplier * waterFactor * healthFactor * weatherFactor * abilityMultiplier) - firePenalty);
         float delta = currentGenerationRate * Time.deltaTime;
         AddCarbon(delta);
 

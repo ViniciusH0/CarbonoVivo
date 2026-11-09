@@ -15,6 +15,8 @@ public class QuestionManager : MonoBehaviour
     public TextMeshProUGUI questionText;
     public Button yesButton;
     public Button noButton;
+    public TextMeshProUGUI yesImpactText;
+    public TextMeshProUGUI noImpactText;
 
     [Header("Audio Focus (Soundtrack vs Humming Sound)")]
     public AudioSource soundtrackSource;
@@ -206,6 +208,7 @@ public class QuestionManager : MonoBehaviour
                     "Game/TreesWidget",
                     "Game/TimeClockWidget",
                     "Game/BottomActionsBar",
+                    "Game/EcologyActionsPanel",
                     "Game/AlertBanner",
                     "Game/WorldHint",
                     "DebugPanel_TriggerButton",
@@ -282,7 +285,8 @@ public class QuestionManager : MonoBehaviour
 
     public void ShowRandomQuestion()
     {
-        if (isFading || availableQuestions.Count == 0) return;
+        if (isFading || isQuestionOpen || availableQuestions.Count == 0 ||
+            (ForestStoryDirector.Instance != null && ForestStoryDirector.Instance.IsOpen)) return;
 
         int randomIndex = Random.Range(0, availableQuestions.Count);
         currentQuestion = availableQuestions[randomIndex];
@@ -291,6 +295,7 @@ public class QuestionManager : MonoBehaviour
         usedQuestions.Add(currentQuestion);
 
         if (questionText != null) questionText.text = currentQuestion.questionText;
+        UpdateChoiceImpacts();
 
         var contextLbl = questionCanvas != null ? questionCanvas.transform.Find("ContextLabel")?.GetComponent<TMPro.TMP_Text>() : null;
         if (contextLbl != null) contextLbl.text = "DILEMA CLIMÁTICO";
@@ -323,14 +328,76 @@ public class QuestionManager : MonoBehaviour
         if (indicatorManager != null && answered != null)
         {
             indicatorManager.ApplyChoiceImpacts(
-                answered.yesForestHealth,
-                answered.yesWater,
-                answered.yesCommunity,
-                answered.yesResources
+                ChoiceImpact(answered.yesForestHealth),
+                ChoiceImpact(answered.yesWater),
+                ChoiceImpact(answered.yesCommunity),
+                ChoiceImpact(answered.yesResources)
             );
         }
 
         ShowFeedbackToast(true);
+        ForestStoryDirector.Instance?.OnDecisionResolved();
+    }
+
+    private void UpdateChoiceImpacts()
+    {
+        if (currentQuestion == null) return;
+        EnsureImpactLabel(ref yesImpactText, yesButton);
+        EnsureImpactLabel(ref noImpactText, noButton);
+        if (yesImpactText != null)
+            yesImpactText.text = FormatImpacts(currentQuestion.yesForestHealth, currentQuestion.yesWater,
+                currentQuestion.yesCommunity, currentQuestion.yesResources);
+        if (noImpactText != null)
+            noImpactText.text = FormatImpacts(currentQuestion.noForestHealth, currentQuestion.noWater,
+                currentQuestion.noCommunity, currentQuestion.noResources);
+    }
+
+    public void RefreshChoicePreview() { UpdateChoiceImpacts(); }
+
+    private static float ChoiceImpact(float value) => EcologySimulation.Instance != null
+        ? EcologySimulation.Config.ChoiceImpact(value) : value;
+
+    private void EnsureImpactLabel(ref TextMeshProUGUI label, Button button)
+    {
+        if (label != null || button == null || questionCanvas == null) return;
+        var go = new GameObject(button.name + "Impacts", typeof(RectTransform));
+        go.transform.SetParent(questionCanvas.transform, false);
+        label = go.AddComponent<TextMeshProUGUI>();
+        var buttonLabel = button.GetComponentInChildren<TextMeshProUGUI>();
+        if (buttonLabel != null) label.font = buttonLabel.font;
+        label.fontSize = 20f;
+        label.alignment = TextAlignmentOptions.Top;
+        label.raycastTarget = false;
+        var rect = label.rectTransform;
+        var buttonRect = (RectTransform)button.transform;
+        rect.anchorMin = buttonRect.anchorMin;
+        rect.anchorMax = buttonRect.anchorMax;
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.anchoredPosition = buttonRect.anchoredPosition + new Vector2(0f, -buttonRect.sizeDelta.y * 0.5f - 16f);
+        rect.sizeDelta = new Vector2(buttonRect.sizeDelta.x + 30f, 110f);
+    }
+
+    private static string FormatImpacts(float forest, float water, float community, float resources)
+    {
+        var impacts = new List<string>();
+        AddImpact(impacts, "Floresta", forest);
+        AddImpact(impacts, "Água", water);
+        AddImpact(impacts, "Comunidade", community);
+        AddImpact(impacts, "Recursos", resources);
+        if (impacts.Count == 0) return "Sem alteração direta";
+        if (EcologySimulation.Instance != null) return string.Join("\n", impacts);
+        // Two indicators per line keep every consequence readable below each choice.
+        if (impacts.Count > 2) impacts[1] += "\n";
+        return string.Join("  ", impacts);
+    }
+
+    private static void AddImpact(List<string> impacts, string name, float value)
+    {
+        if (Mathf.Approximately(value, 0f)) return;
+        string color = value > 0f ? "#8FE5A2" : "#FFAD99";
+        int tier = EcologySimulation.Instance != null ? EcologySimulation.Config.ImpactTier(value) : 2;
+        string sign = new string(value > 0 ? '+' : '-', tier);
+        impacts.Add($"<color={color}>{sign}{name}</color>");
     }
 
     public void OnNoClicked()
@@ -345,14 +412,15 @@ public class QuestionManager : MonoBehaviour
         if (indicatorManager != null && answered != null)
         {
             indicatorManager.ApplyChoiceImpacts(
-                answered.noForestHealth,
-                answered.noWater,
-                answered.noCommunity,
-                answered.noResources
+                ChoiceImpact(answered.noForestHealth),
+                ChoiceImpact(answered.noWater),
+                ChoiceImpact(answered.noCommunity),
+                ChoiceImpact(answered.noResources)
             );
         }
 
         ShowFeedbackToast(false);
+        ForestStoryDirector.Instance?.OnDecisionResolved();
     }
 
     private void ShowFeedbackToast(bool decision)

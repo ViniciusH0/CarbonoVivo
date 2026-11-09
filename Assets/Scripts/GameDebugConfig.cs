@@ -5,6 +5,7 @@ using UnityEngine;
 [System.Serializable]
 public class GameDebugConfigData
 {
+    public EcologyBalanceConfig ecology = new EcologyBalanceConfig();
     [Header("Game Design Settings")]
     public float decisionInterval = 22f;          // Intervalo entre dilemas/perguntas (s)
     public float carbonGenerationMultiplier = 1.0f; // Multiplicador de geração/sequestro de carbono
@@ -49,7 +50,7 @@ public class GameDebugConfigData
                 string json = File.ReadAllText(pPath);
                 if (!string.IsNullOrEmpty(json))
                 {
-                    data = JsonUtility.FromJson<GameDebugConfigData>(json);
+                    data = Parse(json);
                 }
             }
         }
@@ -69,7 +70,7 @@ public class GameDebugConfigData
                     string json = File.ReadAllText(prjPath);
                     if (!string.IsNullOrEmpty(json))
                     {
-                        data = JsonUtility.FromJson<GameDebugConfigData>(json);
+                        data = Parse(json);
                     }
                 }
             }
@@ -87,7 +88,7 @@ public class GameDebugConfigData
                 string json = PlayerPrefs.GetString(PREFS_KEY, "");
                 if (!string.IsNullOrEmpty(json))
                 {
-                    data = JsonUtility.FromJson<GameDebugConfigData>(json);
+                data = Parse(json);
                 }
             }
             catch (Exception ex)
@@ -103,6 +104,45 @@ public class GameDebugConfigData
         }
 
         return data;
+    }
+
+    public static GameDebugConfigData Parse(string json)
+    {
+        // Overwrite defaults so settings saved before ecology was added migrate safely.
+        var data = new GameDebugConfigData();
+        JsonUtility.FromJsonOverwrite(json, data);
+        if (data.ecology == null) data.ecology = new EcologyBalanceConfig();
+        data.NormalizeEcology();
+        return data;
+    }
+
+    public void NormalizeEcology()
+    {
+        if (ecology == null) ecology = new EcologyBalanceConfig();
+        var defaults = new EcologyBalanceConfig();
+        if (ecology.trees == null || ecology.trees.Length != defaults.trees.Length) ecology.trees = defaults.trees;
+        if (ecology.species == null || ecology.species.Length != defaults.species.Length) ecology.species = defaults.species;
+        if (ecology.abilities == null || ecology.abilities.Length != defaults.abilities.Length) ecology.abilities = defaults.abilities;
+        ClampBalance(ecology);
+        ecology.mediumCutoff = Mathf.Max(ecology.smallCutoff, ecology.mediumCutoff);
+        ecology.mediumImpact = Mathf.Max(ecology.smallImpact, ecology.mediumImpact);
+        ecology.largeImpact = Mathf.Max(ecology.mediumImpact, ecology.largeImpact);
+        ecology.diversitySpecies = Mathf.Round(ecology.diversitySpecies);
+    }
+
+    private static void ClampBalance(object owner)
+    {
+        foreach (var field in owner.GetType().GetFields())
+        {
+            var range = Attribute.GetCustomAttribute(field, typeof(BalanceValueAttribute)) as BalanceValueAttribute;
+            if (range != null)
+            {
+                float value = (float)field.GetValue(owner);
+                field.SetValue(owner, float.IsNaN(value) || float.IsInfinity(value) ? range.min : Mathf.Clamp(value, range.min, range.max));
+            }
+            else if (field.GetValue(owner) is Array array)
+                foreach (var child in array) if (child != null) ClampBalance(child);
+        }
     }
 
     public void Save()
@@ -137,6 +177,7 @@ public class GameDebugConfigData
 
     public void ResetDefaults()
     {
+        ecology = new EcologyBalanceConfig();
         decisionInterval = 22f;
         carbonGenerationMultiplier = 1.0f;
         treePlantCost = 10f;

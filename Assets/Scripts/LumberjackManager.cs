@@ -48,6 +48,7 @@ public class LumberjackManager : MonoBehaviour
     private float timer = 0f;
     private float currentTargetInterval = 20f;
     private LumberjackActive currentLumberjack = null;
+    public bool IsAttackActive => currentLumberjack != null && !currentLumberjack.IsDefeated;
 
     private void Awake()
     {

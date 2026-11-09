@@ -192,7 +192,7 @@ public sealed class GameSceneTestUITheme : MonoBehaviour
             bool fresh = card.Find("OrganicSurface") == null;
             if (!fresh) continue;
 
-            var button = card.Find("ActionBtn")?.GetComponent<Button>();
+            var button = (card.Find("ActionBtn") ?? card.Find("Actions/ActionBtn"))?.GetComponent<Button>();
             if (button == null) continue;
             hasFresh = true;
 
@@ -244,7 +244,7 @@ public sealed class GameSceneTestUITheme : MonoBehaviour
             {
                 btnLe.minWidth = 148;
                 btnLe.preferredWidth = 148;
-                btnLe.preferredHeight = 70;
+                btnLe.preferredHeight = card.Find("Actions") != null ? 58 : 70;
             }
             var bt = button.GetComponentInChildren<TMP_Text>();
             if (bt != null)
